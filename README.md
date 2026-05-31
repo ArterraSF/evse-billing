@@ -73,9 +73,26 @@ If a resident asks why their bill is higher than the raw energy cost, this multi
 
 ---
 
+## Peak Demand Analysis
+
+When a ZIP file is uploaded, the app also analyses the 15-minute interval data included in the Emporia export to determine the peak simultaneous draw across all EVSE circuits during the billing period.
+
+This is relevant for **Schedule BEV1**, which replaces the traditional per-kW demand charge with a fixed monthly subscription in blocks of 10 kW. The peak demand panel shows:
+
+- **Peak simultaneous draw** in kW — the highest 15-minute interval total across all circuits
+- **When it occurred** — the exact timestamp of that interval
+- **BEV1 blocks needed** — ceiling of peak kW ÷ 10, with the resulting monthly subscription cost
+- **Top 10 peak intervals** — to distinguish a one-off spike from a recurring pattern
+
+The subscription charge ($12.41 per 10 kW block per month) is a fixed cost that appears on the paper bill and is automatically absorbed by the pro-rata multiplier when the paper bill total is entered.
+
+---
+
 ## Seasonal TOU Windows
 
 The app automatically detects the month from each row's timestamp and applies the correct rate tier. No manual adjustment is needed when seasons change.
+
+### Schedule B-6
 
 | Season | Months | Dates | Peak | Super Off-Peak | Off-Peak |
 |---|---|---|---|---|---|
@@ -83,9 +100,17 @@ The app automatically detects the month from each row's timestamp and applies th
 | Spring | March – May | Mar 1 – May 31 | 4:00 PM – 9:00 PM | 9:00 AM – 2:00 PM | All other hours |
 | Winter | October – February | Oct 1 – Feb 28/29 | 4:00 PM – 9:00 PM | *(none)* | All other hours |
 
-These dates are defined by PG&E tariff regulation and apply equally to both B-6 and BEV1 schedules. CleanPowerSF inherits them from PG&E since it only governs generation charges — the seasonal windows are set on the delivery side.
+### Schedule BEV1
 
-The season month arrays are stored in the `"seasons"` block in [`rates.json`](./rates.json) and can be updated there if PG&E ever changes them via a CPUC rate case (summer used to start May 1 before being shortened to June 1).
+BEV1 has **no seasonal variation** — the same rates apply year-round, and Super Off-Peak applies every day (not just spring):
+
+| Period | Hours | Rate type |
+|---|---|---|
+| Peak | 4:00 PM – 9:00 PM, every day | Higher |
+| Off-Peak | 9:00 PM – 9:00 AM and 2:00 PM – 4:00 PM, every day | Lower |
+| Super Off-Peak | 9:00 AM – 2:00 PM, every day | Lowest |
+
+These dates and windows are defined by PG&E tariff regulation. The season month arrays are stored in the `"seasons"` block in [`rates.json`](./rates.json) and can be updated there if PG&E ever changes them via a CPUC rate case.
 
 ---
 
@@ -100,18 +125,22 @@ Rates are stored as two separate sub-objects under each tariff — `delivery` (P
   "B6": {
     "delivery": {
       "_source": "PG&E Electric Delivery Charges — Schedule B-6",
-      "summerPeak":         0.39584,
-      "summerOffPeak":      0.35225,
+      "summerPeak":         0.64253,
+      "summerOffPeak":      0.38491,
+      "summerSuperOffPeak": 0.00000,
       "winterPeak":         0.39584,
       "winterOffPeak":      0.35225,
+      "winterSuperOffPeak": 0.00000,
       "springSuperOffPeak": 0.31617
     },
     "generation": {
       "_source": "CleanPowerSF Electric Generation Charges — Schedule B-6",
-      "summerPeak":         0.11397,
-      "summerOffPeak":      0.09864,
+      "summerPeak":         0.17108,
+      "summerOffPeak":      0.10711,
+      "summerSuperOffPeak": 0.00000,
       "winterPeak":         0.11397,
       "winterOffPeak":      0.09864,
+      "winterSuperOffPeak": 0.00000,
       "springSuperOffPeak": 0.08388
     }
   }
@@ -120,7 +149,8 @@ Rates are stored as two separate sub-objects under each tariff — `delivery` (P
 
 **Where to find updated rates:**
 - PG&E Schedule B-6: https://www.pge.com/tariffs/assets/pdf/tariffbook/ELEC_SCHEDS_B-6.pdf
-- CleanPowerSF rates: https://www.cleanpowersf.org/rates
+- PG&E Schedule BEV: https://www.pge.com/tariffs/assets/pdf/tariffbook/ELEC_SCHEDS_BEV.pdf
+- CleanPowerSF rates: https://cleanpowersf.org/commercial-rate-tables
 
 The rates on your paper bill are the easiest source to verify against — PG&E lists delivery charges and CleanPowerSF lists generation charges on separate pages, matching the two sub-objects in `rates.json` exactly.
 
@@ -138,6 +168,10 @@ The **Advanced: Update CleanPowerSF / PG&E Rate Metrics** panel in the app allow
 
 The Emporia Vue monitors the two physical mains lines (`Mains_A` and `Mains_B`) that together represent the total building supply. They are not individual circuits and would double-count consumption if included. `Mains_C` is a balance/remainder channel used to account for any energy not captured by individual CTs. All three are excluded automatically — only user-defined circuit columns (the individual EVSE parking spaces) are used in calculations.
 
+### Duplicate circuit names
+
+If two Emporia circuits share the same label, the app merges them into a single row by summing their kWh values. This prevents silent data loss and ensures the total is always correct.
+
 ### Data privacy
 
 This app runs entirely in the browser. The Emporia ZIP file is parsed locally in memory using JavaScript — **no data is ever uploaded to a server, sent to GitHub, or stored anywhere outside the browser tab.** The app has no backend. Residents' charging history remains private.
@@ -148,7 +182,11 @@ This app runs entirely in the browser. The Emporia ZIP file is parsed locally in
 |---|---|
 | `index.html` | The complete single-page application |
 | `rates.json` | TOU rate configuration — edit this annually |
+| `tailwind.css` | Compiled Tailwind CSS — rebuild after modifying `index.html` |
+| `input.css` | Tailwind CSS input file (local only, not committed) |
 | `arterra-logo.jpg` | HOA logo displayed in the app header |
+| `arterra-logo-square.jpg` | Square version of the logo for GitHub org profile |
+| `favicon.ico` | Browser tab icon |
 | `.gitignore` | Prevents accidental commit of `.zip` / `.csv` data exports |
 
 ---
@@ -165,7 +203,8 @@ Open [`rates.json`](./rates.json) in the repository. Rates are stored as two sep
 
 You can also verify against the published tariff sheets:
 - [PG&E Schedule B-6 tariff sheet](https://www.pge.com/tariffs/assets/pdf/tariffbook/ELEC_SCHEDS_B-6.pdf)
-- [CleanPowerSF rates page](https://www.cleanpowersf.org/rates)
+- [PG&E Schedule BEV tariff sheet](https://www.pge.com/tariffs/assets/pdf/tariffbook/ELEC_SCHEDS_BEV.pdf)
+- [CleanPowerSF commercial rate tables](https://cleanpowersf.org/commercial-rate-tables)
 
 ### 2. Verify the seasonal hour windows
 
@@ -174,10 +213,11 @@ The hour boundaries are defined in `index.html` and match the PG&E tariff exactl
 | Window | Condition in code | Hours |
 |---|---|---|
 | Peak (all seasons) | `hour >= 16 && hour < 21` | 4:00 PM – 8:59 PM |
-| Spring Super Off-Peak | `hour >= 9 && hour < 14` | 9:00 AM – 1:59 PM |
+| Super Off-Peak (spring B-6) | `hour >= 9 && hour < 14` | 9:00 AM – 1:59 PM |
+| Super Off-Peak (BEV1 year-round) | `hour >= 9 && hour < 14` | 9:00 AM – 1:59 PM |
 | Off-Peak | everything else | remaining hours |
 
-Note: spring peak hours use the same rate as winter peak — this is correct per the PG&E B-6 tariff, which defines a single non-summer peak rate applying October through May.
+Note: spring peak hours on B-6 use the same rate as winter peak — this is correct per the PG&E B-6 tariff, which defines a single non-summer peak rate applying October through May.
 
 ### 3. Verify the pro-rata multiplier
 
@@ -201,7 +241,7 @@ To spot-check a single parking space:
 
 ### 5. Audit the source code directly
 
-The entire application is a single file — [`index.html`](./index.html). The billing logic is in the `processCSV()` and `calculateBilling()` functions. There is no backend, no database, and no external service involved. Everything that happens to your data happens in those two functions, in your browser.
+The entire application is a single file — [`index.html`](./index.html). The billing logic is in the `processCSV()` and `calculateBilling()` functions, and the peak demand logic is in `analysePeakDemand()`. There is no backend, no database, and no external service involved. Everything that happens to your data happens in those functions, in your browser.
 
 ---
 
