@@ -1,9 +1,10 @@
 {
-  "_comment": "PG&E delivery and CleanPowerSF generation rates stored separately ($/kWh) so each can be updated independently. The app adds them together at runtime. Update annually — PG&E and CleanPowerSF typically publish new rates effective July 1.",
-  "_lastUpdated": "2026-04-09",
+  "_comment": "PG&E delivery and CleanPowerSF generation rates stored separately ($/kWh) so each can be updated independently. The app adds them together at runtime.",
+  "_lastUpdated": "2026-03-01",
   "_sources": {
-    "pge":        "https://www.pge.com/tariffs/assets/pdf/tariffbook/ELEC_SCHEDS_B-6.pdf",
-    "cleanpowersf": "https://www.cleanpowersf.org/rates"
+    "pge_b6":       "https://www.pge.com/tariffs/assets/pdf/tariffbook/ELEC_SCHEDS_B-6.pdf",
+    "pge_bev":      "https://www.pge.com/tariffs/assets/pdf/tariffbook/ELEC_SCHEDS_BEV.pdf",
+    "cleanpowersf": "https://cleanpowersf.org/commercial-rate-tables"
   },
   "seasons": {
     "summer": [6, 7, 8, 9],
@@ -12,40 +13,50 @@
   },
   "B6": {
     "_name": "Schedule B-6 (General Commercial TOU)",
+    "_note": "Summer and winter delivery rates differ significantly. Super Off-Peak applies spring only (Mar-May). Verified against PG&E ELEC_SCHEDS_B-6.pdf (effective Mar 1 2026) and March 2026 paper bill.",
     "delivery": {
-      "_source": "PG&E Electric Delivery Charges — Schedule B-6",
-      "summerPeak":         0.39584,
-      "summerOffPeak":      0.35225,
+      "_source": "PG&E Electric Delivery Charges — Schedule B-6 (ELEC_SCHEDS_B-6.pdf)",
+      "summerPeak":         0.64253,
+      "summerOffPeak":      0.38491,
+      "summerSuperOffPeak": 0.00000,
       "winterPeak":         0.39584,
       "winterOffPeak":      0.35225,
+      "winterSuperOffPeak": 0.00000,
       "springSuperOffPeak": 0.31617
     },
     "generation": {
-      "_source": "CleanPowerSF Electric Generation Charges — Schedule B-6",
+      "_source": "CleanPowerSF Electric Generation Charges — Schedule B-6 (cleanpowersf.org/commercial-rate-tables)",
       "summerPeak":         0.17108,
       "summerOffPeak":      0.10711,
+      "summerSuperOffPeak": 0.00000,
       "winterPeak":         0.11397,
       "winterOffPeak":      0.09864,
+      "winterSuperOffPeak": 0.00000,
       "springSuperOffPeak": 0.08388
     }
   },
   "BEV1": {
     "_name": "Schedule BEV1 (Dedicated Business EV)",
+    "_note": "BEV1 rates are year-round with no seasonal variation. Super Off-Peak applies every day 9am-2pm year-round (unlike B-6 which is spring only). Peak capacity is billed via a subscription charge per 10kW block — this fixed cost is absorbed by the pro-rata multiplier when the paper bill total is entered. Delivery rates derived from PG&E total energy rates minus PG&E generation component. Verified against ELEC_SCHEDS_BEV.pdf (effective Mar 1 2026).",
     "delivery": {
-      "_source": "PG&E Electric Delivery Charges — Schedule BEV1",
-      "summerPeak":         0.38000,
-      "summerOffPeak":      0.29000,
-      "winterPeak":         0.36000,
-      "winterOffPeak":      0.27000,
-      "springSuperOffPeak": 0.22000
+      "_source": "PG&E Electric Delivery Charges — Schedule BEV-1 (total energy rate minus generation component, ELEC_SCHEDS_BEV.pdf)",
+      "summerPeak":         0.08688,
+      "summerOffPeak":      0.07743,
+      "summerSuperOffPeak": 0.07616,
+      "winterPeak":         0.08688,
+      "winterOffPeak":      0.07743,
+      "winterSuperOffPeak": 0.07616,
+      "springSuperOffPeak": 0.07616
     },
     "generation": {
-      "_source": "CleanPowerSF Electric Generation Charges — Schedule BEV1",
-      "summerPeak":         0.11500,
-      "summerOffPeak":      0.09500,
-      "winterPeak":         0.11000,
-      "winterOffPeak":      0.09000,
-      "springSuperOffPeak": 0.08000
+      "_source": "CleanPowerSF Electric Generation Charges — Schedule B-EV-1 (cleanpowersf.org/commercial-rate-tables)",
+      "summerPeak":         0.21137,
+      "summerOffPeak":      0.07159,
+      "summerSuperOffPeak": 0.05214,
+      "winterPeak":         0.21137,
+      "winterOffPeak":      0.07159,
+      "winterSuperOffPeak": 0.05214,
+      "springSuperOffPeak": 0.05214
     }
   }
 }

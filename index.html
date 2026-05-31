@@ -164,7 +164,7 @@
                 <span>⚙️ Advanced: Update CleanPowerSF / PG&E Rate Metrics</span>
                 <span class="text-blue-600 font-medium normal-case text-xs">Click to open/edit</span>
             </summary>
-            <div class="p-6 grid grid-cols-2 sm:grid-cols-5 gap-4 bg-slate-50 border-t border-gray-200">
+            <div class="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 border-t border-gray-200">
                 <div>
                     <label class="block text-xs font-semibold text-gray-500 mb-1">Summer Peak ($)</label>
                     <input type="number" id="rate_summerPeak" step="0.00001" class="w-full border p-2 rounded text-sm font-mono font-bold" oninput="updateRatesFromUI()">
@@ -174,12 +174,20 @@
                     <input type="number" id="rate_summerOffPeak" step="0.00001" class="w-full border p-2 rounded text-sm font-mono font-bold" oninput="updateRatesFromUI()">
                 </div>
                 <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Summer Super Off-Peak ($)</label>
+                    <input type="number" id="rate_summerSuperOffPeak" step="0.00001" class="w-full border p-2 rounded text-sm font-mono font-bold" oninput="updateRatesFromUI()">
+                </div>
+                <div>
                     <label class="block text-xs font-semibold text-gray-500 mb-1">Winter Peak ($)</label>
                     <input type="number" id="rate_winterPeak" step="0.00001" class="w-full border p-2 rounded text-sm font-mono font-bold" oninput="updateRatesFromUI()">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-500 mb-1">Winter Off-Peak ($)</label>
                     <input type="number" id="rate_winterOffPeak" step="0.00001" class="w-full border p-2 rounded text-sm font-mono font-bold" oninput="updateRatesFromUI()">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Winter Super Off-Peak ($)</label>
+                    <input type="number" id="rate_winterSuperOffPeak" step="0.00001" class="w-full border p-2 rounded text-sm font-mono font-bold" oninput="updateRatesFromUI()">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-500 mb-1">Spring Super Off-Peak ($)</label>
@@ -264,7 +272,10 @@
                         RATES[t] = {};
                         const d = data[t].delivery;
                         const g = data[t].generation;
-                        ['summerPeak','summerOffPeak','winterPeak','winterOffPeak','springSuperOffPeak'].forEach(k => {
+                        const keys = ['summerPeak','summerOffPeak','summerSuperOffPeak',
+                                      'winterPeak','winterOffPeak','winterSuperOffPeak',
+                                      'springSuperOffPeak'];
+                        keys.forEach(k => {
                             RATES[t][k] = (d[k] || 0) + (g[k] || 0);
                         });
                     });
@@ -278,8 +289,10 @@
             const t = document.getElementById('tariffSelector').value;
             document.getElementById('rate_summerPeak').value = RATES[t].summerPeak;
             document.getElementById('rate_summerOffPeak').value = RATES[t].summerOffPeak;
+            document.getElementById('rate_summerSuperOffPeak').value = RATES[t].summerSuperOffPeak;
             document.getElementById('rate_winterPeak').value = RATES[t].winterPeak;
             document.getElementById('rate_winterOffPeak').value = RATES[t].winterOffPeak;
+            document.getElementById('rate_winterSuperOffPeak').value = RATES[t].winterSuperOffPeak;
             document.getElementById('rate_springSuperOffPeak').value = RATES[t].springSuperOffPeak;
         }
 
@@ -287,8 +300,10 @@
             const t = document.getElementById('tariffSelector').value;
             RATES[t].summerPeak = parseFloat(document.getElementById('rate_summerPeak').value) || 0;
             RATES[t].summerOffPeak = parseFloat(document.getElementById('rate_summerOffPeak').value) || 0;
+            RATES[t].summerSuperOffPeak = parseFloat(document.getElementById('rate_summerSuperOffPeak').value) || 0;
             RATES[t].winterPeak = parseFloat(document.getElementById('rate_winterPeak').value) || 0;
             RATES[t].winterOffPeak = parseFloat(document.getElementById('rate_winterOffPeak').value) || 0;
+            RATES[t].winterSuperOffPeak = parseFloat(document.getElementById('rate_winterSuperOffPeak').value) || 0;
             RATES[t].springSuperOffPeak = parseFloat(document.getElementById('rate_springSuperOffPeak').value) || 0;
             calculateBilling();
         }
@@ -357,13 +372,17 @@
 
                 let seasonBucket;
                 if (SEASONS.summer.includes(month)) {
-                    seasonBucket = (hour >= 16 && hour < 21) ? 'summerPeak' : 'summerOffPeak';
+                    if (hour >= 16 && hour < 21)      seasonBucket = 'summerPeak';
+                    else if (hour >= 9 && hour < 14)  seasonBucket = 'summerSuperOffPeak';
+                    else                              seasonBucket = 'summerOffPeak';
                 } else if (SEASONS.spring.includes(month)) {
-                    if (hour >= 16 && hour < 21) seasonBucket = 'winterPeak';
-                    else if (hour >= 9 && hour < 14) seasonBucket = 'springSuperOffPeak';
-                    else seasonBucket = 'winterOffPeak';
+                    if (hour >= 16 && hour < 21)      seasonBucket = 'winterPeak';
+                    else if (hour >= 9 && hour < 14)  seasonBucket = 'springSuperOffPeak';
+                    else                              seasonBucket = 'winterOffPeak';
                 } else {
-                    seasonBucket = (hour >= 16 && hour < 21) ? 'winterPeak' : 'winterOffPeak';
+                    if (hour >= 16 && hour < 21)      seasonBucket = 'winterPeak';
+                    else if (hour >= 9 && hour < 14)  seasonBucket = 'winterSuperOffPeak';
+                    else                              seasonBucket = 'winterOffPeak';
                 }
                 return { row, seasonBucket };
             });
