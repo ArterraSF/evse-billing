@@ -167,54 +167,78 @@
                 <table class="w-full text-xs border-collapse">
                     <thead>
                         <tr class="bg-slate-800 text-white uppercase tracking-wider">
-                            <th class="p-3 text-left">Rate Tier</th>
+                            <th class="p-3 text-left">Season / Rate Tier</th>
                             <th class="p-3 text-center bg-blue-900">PG&E Delivery ($)</th>
                             <th class="p-3 text-center bg-green-900">CleanPowerSF Generation ($)</th>
                             <th class="p-3 text-center">Combined ($/kWh)</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
+                        <!-- Spring (Mar–May) -->
+                        <tr class="bg-green-200">
+                            <td colspan="4" class="px-3 py-1.5 font-bold text-green-900 uppercase tracking-wider text-xs">Spring — March 1 through May 31</td>
+                        </tr>
+                        <tr class="bg-green-50">
+                            <td class="p-3"><div class="font-semibold text-green-900">Peak</div><div class="text-slate-400 text-xs mt-0.5">4:00 PM – 9:00 PM</div></td>
+                            <td class="p-2 bg-blue-50"><input type="number" id="del_winterPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
+                            <td class="p-2 bg-green-50"><input type="number" id="gen_winterPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
+                            <td class="p-3 text-center font-mono font-bold" id="comb_winterPeak"></td>
+                        </tr>
+                        <tr class="bg-green-50">
+                            <td class="p-3"><div class="font-semibold text-green-800">Off-Peak</div><div class="text-slate-400 text-xs mt-0.5">9:00 PM – 9:00 AM and 2:00 PM – 4:00 PM</div></td>
+                            <td class="p-2 bg-blue-50"><input type="number" id="del_winterOffPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
+                            <td class="p-2 bg-green-50"><input type="number" id="gen_winterOffPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
+                            <td class="p-3 text-center font-mono font-bold" id="comb_winterOffPeak"></td>
+                        </tr>
+                        <tr class="bg-green-50" id="row_springSuperOffPeak">
+                            <td class="p-3"><div class="font-semibold text-green-700">Super Off-Peak</div><div class="text-slate-400 text-xs mt-0.5">9:00 AM – 2:00 PM</div></td>
+                            <td class="p-2 bg-blue-50"><input type="number" id="del_springSuperOffPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
+                            <td class="p-2 bg-green-50"><input type="number" id="gen_springSuperOffPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
+                            <td class="p-3 text-center font-mono font-bold" id="comb_springSuperOffPeak"></td>
+                        </tr>
+                        <!-- Summer (Jun–Sep) -->
+                        <tr class="bg-orange-200">
+                            <td colspan="4" class="px-3 py-1.5 font-bold text-orange-900 uppercase tracking-wider text-xs">Summer — June 1 through September 30</td>
+                        </tr>
                         <tr class="bg-orange-50">
-                            <td class="p-3"><div class="font-semibold text-orange-800">Summer Peak</div><div class="text-slate-400 text-xs mt-0.5">4:00 PM – 9:00 PM</div></td>
+                            <td class="p-3"><div class="font-semibold text-orange-900">Peak</div><div class="text-slate-400 text-xs mt-0.5">4:00 PM – 9:00 PM</div></td>
                             <td class="p-2 bg-blue-50"><input type="number" id="del_summerPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
                             <td class="p-2 bg-green-50"><input type="number" id="gen_summerPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
                             <td class="p-3 text-center font-mono font-bold" id="comb_summerPeak"></td>
                         </tr>
                         <tr class="bg-orange-50">
-                            <td class="p-3"><div class="font-semibold text-orange-700">Summer Off-Peak</div><div class="text-slate-400 text-xs mt-0.5" id="time_summerOffPeak">All other hours</div></td>
+                            <td class="p-3"><div class="font-semibold text-orange-800">Off-Peak</div><div class="text-slate-400 text-xs mt-0.5" id="time_summerOffPeak">9:00 PM – 4:00 PM (next day)</div></td>
                             <td class="p-2 bg-blue-50"><input type="number" id="del_summerOffPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
                             <td class="p-2 bg-green-50"><input type="number" id="gen_summerOffPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
                             <td class="p-3 text-center font-mono font-bold" id="comb_summerOffPeak"></td>
                         </tr>
                         <tr class="bg-orange-50" id="row_summerSuperOffPeak">
-                            <td class="p-3"><div class="font-semibold text-orange-600">Summer Super Off-Peak</div><div class="text-slate-400 text-xs mt-0.5">9:00 AM – 2:00 PM</div></td>
+                            <td class="p-3"><div class="font-semibold text-orange-700">Super Off-Peak</div><div class="text-slate-400 text-xs mt-0.5">9:00 AM – 2:00 PM</div></td>
                             <td class="p-2 bg-blue-50"><input type="number" id="del_summerSuperOffPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
                             <td class="p-2 bg-green-50"><input type="number" id="gen_summerSuperOffPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
                             <td class="p-3 text-center font-mono font-bold" id="comb_summerSuperOffPeak"></td>
                         </tr>
+                        <!-- Winter (Oct–Feb) -->
+                        <tr class="bg-slate-200">
+                            <td colspan="4" class="px-3 py-1.5 font-bold text-slate-700 uppercase tracking-wider text-xs">Winter — October 1 through February 28</td>
+                        </tr>
+                        <tr class="bg-slate-50">
+                            <td class="p-3"><div class="font-semibold text-slate-800">Peak</div><div class="text-slate-400 text-xs mt-0.5">4:00 PM – 9:00 PM</div><div class="text-slate-300 text-xs italic mt-0.5">same rate as Spring Peak</div></td>
+                            <td class="p-2 bg-blue-50 text-center font-mono font-bold text-slate-500" id="disp_winterPeak_del"></td>
+                            <td class="p-2 bg-green-50 text-center font-mono font-bold text-slate-500" id="disp_winterPeak_gen"></td>
+                            <td class="p-3 text-center font-mono font-bold" id="disp_winterPeak_comb"></td>
+                        </tr>
+                        <tr class="bg-slate-50">
+                            <td class="p-3"><div class="font-semibold text-slate-700">Off-Peak</div><div class="text-slate-400 text-xs mt-0.5">All other hours</div><div class="text-slate-300 text-xs italic mt-0.5">same rate as Spring Off-Peak</div></td>
+                            <td class="p-2 bg-blue-50 text-center font-mono font-bold text-slate-500" id="disp_winterOffPeak_del"></td>
+                            <td class="p-2 bg-green-50 text-center font-mono font-bold text-slate-500" id="disp_winterOffPeak_gen"></td>
+                            <td class="p-3 text-center font-mono font-bold" id="disp_winterOffPeak_comb"></td>
+                        </tr>
                         <tr class="bg-slate-50" id="row_winterSuperOffPeak">
-                            <td class="p-3"><div class="font-semibold text-slate-600">Winter Super Off-Peak</div><div class="text-slate-400 text-xs mt-0.5">9:00 AM – 2:00 PM</div></td>
+                            <td class="p-3"><div class="font-semibold text-slate-600">Super Off-Peak</div><div class="text-slate-400 text-xs mt-0.5">9:00 AM – 2:00 PM</div></td>
                             <td class="p-2 bg-blue-50"><input type="number" id="del_winterSuperOffPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
                             <td class="p-2 bg-green-50"><input type="number" id="gen_winterSuperOffPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
                             <td class="p-3 text-center font-mono font-bold" id="comb_winterSuperOffPeak"></td>
-                        </tr>
-                        <tr class="bg-slate-50">
-                            <td class="p-3"><div class="font-semibold text-slate-800">Winter Peak</div><div class="text-slate-400 text-xs mt-0.5">4:00 PM – 9:00 PM</div></td>
-                            <td class="p-2 bg-blue-50"><input type="number" id="del_winterPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
-                            <td class="p-2 bg-green-50"><input type="number" id="gen_winterPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
-                            <td class="p-3 text-center font-mono font-bold" id="comb_winterPeak"></td>
-                        </tr>
-                        <tr class="bg-slate-50">
-                            <td class="p-3"><div class="font-semibold text-slate-700">Winter Off-Peak</div><div class="text-slate-400 text-xs mt-0.5" id="time_winterOffPeak">All other hours</div></td>
-                            <td class="p-2 bg-blue-50"><input type="number" id="del_winterOffPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
-                            <td class="p-2 bg-green-50"><input type="number" id="gen_winterOffPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
-                            <td class="p-3 text-center font-mono font-bold" id="comb_winterOffPeak"></td>
-                        </tr>
-                        <tr class="bg-green-50">
-                            <td class="p-3"><div class="font-semibold text-green-800">Spring Super Off-Peak</div><div class="text-slate-400 text-xs mt-0.5">9:00 AM – 2:00 PM</div></td>
-                            <td class="p-2 bg-blue-50"><input type="number" id="del_springSuperOffPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
-                            <td class="p-2 bg-green-50"><input type="number" id="gen_springSuperOffPeak" step="0.00001" class="w-full border p-1.5 rounded font-mono text-center" oninput="updateRatesFromUI()"></td>
-                            <td class="p-3 text-center font-mono font-bold" id="comb_springSuperOffPeak"></td>
                         </tr>
                     </tbody>
                 </table>
@@ -435,17 +459,17 @@
         function syncRateUI() {
             const t = document.getElementById('tariffSelector').value;
             const isBEV1 = t === 'BEV1';
-            // B-6 has no summer or winter super off-peak; BEV1 has both year-round
+
+            // Show/hide super off-peak rows
             document.getElementById('row_summerSuperOffPeak').style.display = isBEV1 ? '' : 'none';
             document.getElementById('row_winterSuperOffPeak').style.display = isBEV1 ? '' : 'none';
-            // Off-peak hours differ: when super off-peak exists, off-peak is split around it
-            const offPeakSplit = '9:00 PM – 9:00 AM and 2:00 PM – 4:00 PM';
-            const offPeakFull  = '9:00 PM – 4:00 PM (next day)';
-            document.getElementById('time_summerOffPeak').innerText = isBEV1 ? offPeakSplit : offPeakFull;
-            // For B-6 spring, off-peak is split (super off-peak occupies 9am-2pm)
-            // Winter Off-Peak row covers both winter and spring on B-6
-            const springNote = isBEV1 ? '' : ' (spring: 9:00 PM – 9:00 AM and 2:00 PM – 4:00 PM)';
-            document.getElementById('time_winterOffPeak').innerText = isBEV1 ? offPeakSplit : offPeakFull + springNote;
+
+            // Summer off-peak hours differ by tariff
+            document.getElementById('time_summerOffPeak').innerText = isBEV1
+                ? '9:00 PM – 9:00 AM and 2:00 PM – 4:00 PM'
+                : '9:00 PM – 4:00 PM (next day)';
+
+            // Populate editable spring + summer fields
             PANEL_KEYS.forEach(k => {
                 const d = DELIVERY[t] ? (DELIVERY[t][k] || 0) : 0;
                 const g = GENERATION[t] ? (GENERATION[t][k] || 0) : 0;
@@ -453,13 +477,27 @@
                 document.getElementById('gen_' + k).value = g;
                 document.getElementById('comb_' + k).innerText = (d + g).toFixed(5);
             });
-            // Also sync winterSuperOffPeak fields if they exist
-            const wk = 'winterSuperOffPeak';
-            const wd = DELIVERY[t] ? (DELIVERY[t][wk] || 0) : 0;
-            const wg = GENERATION[t] ? (GENERATION[t][wk] || 0) : 0;
-            document.getElementById('del_' + wk).value = wd;
-            document.getElementById('gen_' + wk).value = wg;
-            document.getElementById('comb_' + wk).innerText = (wd + wg).toFixed(5);
+
+            // Populate winterSuperOffPeak editable fields (BEV1 only)
+            ['winterSuperOffPeak'].forEach(k => {
+                const d = DELIVERY[t] ? (DELIVERY[t][k] || 0) : 0;
+                const g = GENERATION[t] ? (GENERATION[t][k] || 0) : 0;
+                document.getElementById('del_' + k).value = d;
+                document.getElementById('gen_' + k).value = g;
+                document.getElementById('comb_' + k).innerText = (d + g).toFixed(5);
+            });
+
+            // Winter peak/off-peak are read-only mirrors of spring (same rate)
+            const dp  = DELIVERY[t] ? (DELIVERY[t].winterPeak || 0) : 0;
+            const gp  = GENERATION[t] ? (GENERATION[t].winterPeak || 0) : 0;
+            const do_ = DELIVERY[t] ? (DELIVERY[t].winterOffPeak || 0) : 0;
+            const go_ = GENERATION[t] ? (GENERATION[t].winterOffPeak || 0) : 0;
+            document.getElementById('disp_winterPeak_del').innerText   = dp.toFixed(5);
+            document.getElementById('disp_winterPeak_gen').innerText   = gp.toFixed(5);
+            document.getElementById('disp_winterPeak_comb').innerText  = (dp + gp).toFixed(5);
+            document.getElementById('disp_winterOffPeak_del').innerText  = do_.toFixed(5);
+            document.getElementById('disp_winterOffPeak_gen').innerText  = go_.toFixed(5);
+            document.getElementById('disp_winterOffPeak_comb').innerText = (do_ + go_).toFixed(5);
         }
 
         function updateRatesFromUI() {
