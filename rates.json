@@ -22,8 +22,8 @@
     },
     "generation": {
       "_source": "CleanPowerSF Electric Generation Charges — Schedule B-6",
-      "summerPeak":         0.11397,
-      "summerOffPeak":      0.09864,
+      "summerPeak":         0.17108,
+      "summerOffPeak":      0.10711,
       "winterPeak":         0.11397,
       "winterOffPeak":      0.09864,
       "springSuperOffPeak": 0.08388
