@@ -330,7 +330,7 @@
             const allKeys = Object.keys(json[0]);
             const timeKey = allKeys.find(k => /time|bucket|date/i.test(k));
             // Exclude the time column and any Mains_C (unmonitored/balance channel)
-            circuitHeaders = allKeys.filter(k => k !== timeKey && !/mains_c/i.test(k));
+            circuitHeaders = allKeys.filter(k => k !== timeKey && !/mains_[abc]/i.test(k));
 
             parsedData = json.map(row => {
                 // Parse "MM/DD/YYYY HH:MM:SS" reliably across all browsers

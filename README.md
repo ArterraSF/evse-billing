@@ -77,11 +77,15 @@ If a resident asks why their bill is higher than the raw energy cost, this multi
 
 The app automatically detects the month from each row's timestamp and applies the correct rate tier. No manual adjustment is needed when seasons change.
 
-| Season | Months | Peak | Super Off-Peak | Off-Peak |
-|---|---|---|---|---|
-| Summer | June – September | 4:00 PM – 9:00 PM | *(none)* | All other hours |
-| Spring | March – May | 4:00 PM – 9:00 PM | 9:00 AM – 2:00 PM | All other hours |
-| Winter | October – February | 4:00 PM – 9:00 PM | *(none)* | All other hours |
+| Season | Months | Dates | Peak | Super Off-Peak | Off-Peak |
+|---|---|---|---|---|---|
+| Summer | June – September | Jun 1 – Sep 30 | 4:00 PM – 9:00 PM | *(none)* | All other hours |
+| Spring | March – May | Mar 1 – May 31 | 4:00 PM – 9:00 PM | 9:00 AM – 2:00 PM | All other hours |
+| Winter | October – February | Oct 1 – Feb 28/29 | 4:00 PM – 9:00 PM | *(none)* | All other hours |
+
+These dates are defined by PG&E tariff regulation and apply equally to both B-6 and BEV1 schedules. CleanPowerSF inherits them from PG&E since it only governs generation charges — the seasonal windows are set on the delivery side.
+
+The season month arrays are stored in the `"seasons"` block in [`rates.json`](./rates.json) and can be updated there if PG&E ever changes them via a CPUC rate case (summer used to start May 1 before being shortened to June 1).
 
 ---
 
@@ -122,9 +126,9 @@ The **Advanced: Update CleanPowerSF / PG&E Rate Metrics** panel in the app allow
 
 ## Technical Notes
 
-### Why is `Mains_C` excluded?
+### Why are `Mains_A`, `Mains_B`, and `Mains_C` excluded?
 
-The Emporia Vue uses a `Mains_C` channel as a balance/remainder circuit to account for any energy not captured by individual CTs. It does not represent a specific parking space and is excluded from all calculations automatically.
+The Emporia Vue monitors the two physical mains lines (`Mains_A` and `Mains_B`) that together represent the total building supply. They are not individual circuits and would double-count consumption if included. `Mains_C` is a balance/remainder channel used to account for any energy not captured by individual CTs. All three are excluded automatically — only user-defined circuit columns (the individual EVSE parking spaces) are used in calculations.
 
 ### Data privacy
 
