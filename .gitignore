@@ -1,3 +1,6 @@
 # Emporia data exports
 *.zip
 *.csv
+
+# Tailwind CLI binary
+tailwindcss-linux-x64

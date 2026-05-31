@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arterra HOA — EVSE Infrastructure Billing Engine</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="tailwind.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
@@ -229,7 +229,6 @@
 
     <script>
         function exportPDF() {
-            // Populate the print-only header with billing period and tariff info
             const tariff = document.getElementById('tariffSelector').value;
             const paperBill = document.getElementById('paperBillInput').value;
             const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -237,6 +236,7 @@
                 `Generated ${date} · Tariff: ${tariff}` + (paperBill ? ` · Paper Bill: $${parseFloat(paperBill).toFixed(2)}` : '');
             window.print();
         }
+        function openHelp() {
             document.getElementById('helpDrawer').classList.remove('translate-x-full');
             document.getElementById('helpBackdrop').classList.remove('hidden');
         }
