@@ -6,7 +6,6 @@
     <title>Arterra HOA — EVSE Infrastructure Billing Engine</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="tailwind.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         @media print {
@@ -351,21 +350,36 @@
         }
 
         function processCSV(csvText) {
-            const readType = (csvText instanceof ArrayBuffer) ? 'array' : 'string';
-            const workbook = XLSX.read(csvText, { type: readType, cellDates: false });
-            const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-            if (!json.length) { showError("⚠️ The CSV file appears empty."); return; }
+            // Parse CSV directly as text to preserve raw timestamp strings
+            const lines = (typeof csvText === 'string' ? csvText : new TextDecoder().decode(csvText))
+                .trim().split('\n');
+            if (lines.length < 2) { showError('⚠️ The CSV file appears empty.'); return; }
 
-            const allKeys = Object.keys(json[0]);
-            const timeKey = allKeys.find(k => /time|bucket|date/i.test(k));
-            // Exclude the time column and any Mains_C (unmonitored/balance channel)
-            circuitHeaders = allKeys.filter(k => k !== timeKey && !/mains_[abc]/i.test(k));
+            const headers = lines[0].split(',').map(h => h.trim());
+            const timeKey = headers.find(k => /time|bucket|date/i.test(k));
+            const timeIdx = headers.indexOf(timeKey);
+            circuitHeaders = headers.filter(k => k !== timeKey && !/mains_[abc]/i.test(k));
 
-            parsedData = json.map(row => {
-                // Parse "MM/DD/YYYY HH:MM:SS" reliably across all browsers
-                const raw = String(row[timeKey]);
+            // Handle duplicate column names by appending index
+            const seen = {};
+            const uniqueHeaders = headers.map(h => {
+                if (seen[h] !== undefined) { seen[h]++; return h + '_' + seen[h]; }
+                seen[h] = 0; return h;
+            });
+            circuitHeaders = uniqueHeaders.filter((h, i) => i !== timeIdx && !/mains_[abc]/i.test(h));
+            const circuitIndices = circuitHeaders.map(h => uniqueHeaders.indexOf(h));
+
+            parsedData = [];
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                const cols = line.split(',');
+                const raw = cols[timeIdx] ? cols[timeIdx].trim() : '';
+                if (!raw) continue;
+
+                // Parse MM/DD/YYYY HH:MM:SS directly from the raw string
                 const [datePart, timePart] = raw.split(' ');
-                const [mo, dy, yr] = datePart.split('/');
+                const [mo, , ] = datePart.split('/');
                 const [hr] = (timePart || '0:0:0').split(':');
                 const month = parseInt(mo, 10);
                 const hour = parseInt(hr, 10);
@@ -384,9 +398,15 @@
                     else if (hour >= 9 && hour < 14)  seasonBucket = 'winterSuperOffPeak';
                     else                              seasonBucket = 'winterOffPeak';
                 }
-                return { row, seasonBucket };
-            });
 
+                const row = {};
+                circuitHeaders.forEach((h, j) => {
+                    row[h] = cols[circuitIndices[j]] ? cols[circuitIndices[j]].trim() : '';
+                });
+                parsedData.push({ row, seasonBucket });
+            }
+
+            if (!parsedData.length) { showError('⚠️ No valid data rows found in CSV.'); return; }
             document.getElementById('resultsCard').classList.remove('hidden');
             calculateBilling();
         }
