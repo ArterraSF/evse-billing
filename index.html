@@ -360,14 +360,16 @@
             const timeIdx = headers.indexOf(timeKey);
             circuitHeaders = headers.filter(k => k !== timeKey && !/mains_[abc]/i.test(k));
 
-            // Handle duplicate column names by appending index
+            // Handle duplicate column names by merging them into one
             const seen = {};
-            const uniqueHeaders = headers.map(h => {
-                if (seen[h] !== undefined) { seen[h]++; return h + '_' + seen[h]; }
-                seen[h] = 0; return h;
+            const headerMap = {}; // maps each column index to its canonical name
+            headers.forEach((h, i) => {
+                if (i === timeIdx || /mains_[abc]/i.test(h)) return;
+                if (headerMap[h] === undefined) headerMap[h] = [];
+                headerMap[h].push(i);
             });
-            circuitHeaders = uniqueHeaders.filter((h, i) => i !== timeIdx && !/mains_[abc]/i.test(h));
-            const circuitIndices = circuitHeaders.map(h => uniqueHeaders.indexOf(h));
+            circuitHeaders = Object.keys(headerMap);
+            const circuitColumnIndices = circuitHeaders.map(h => headerMap[h]); // array of arrays
 
             parsedData = [];
             for (let i = 1; i < lines.length; i++) {
@@ -401,7 +403,12 @@
 
                 const row = {};
                 circuitHeaders.forEach((h, j) => {
-                    row[h] = cols[circuitIndices[j]] ? cols[circuitIndices[j]].trim() : '';
+                    // Sum all columns that share this circuit name
+                    const val = circuitColumnIndices[j].reduce((sum, ci) => {
+                        const v = cols[ci] ? cols[ci].trim() : '';
+                        return sum + ((v === '' || v === 'No CT') ? 0 : (parseFloat(v) || 0));
+                    }, 0);
+                    row[h] = val;
                 });
                 parsedData.push({ row, seasonBucket });
             }
@@ -424,7 +431,7 @@
             parsedData.forEach(({ row, seasonBucket }) => {
                 circuitHeaders.forEach(h => {
                     const raw = row[h];
-                    const kwh = (raw === 'No CT' || raw === undefined) ? 0 : (parseFloat(raw) || 0);
+                    const kwh = (typeof raw === 'number') ? raw : ((raw === 'No CT' || raw === undefined) ? 0 : (parseFloat(raw) || 0));
                     metrics[h].kwh += kwh;
                     metrics[h].rawCost += kwh * rates[seasonBucket];
                 });
