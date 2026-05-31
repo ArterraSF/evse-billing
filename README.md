@@ -148,3 +148,48 @@ This app runs entirely in the browser. The Emporia ZIP file is parsed locally in
 ## Repository
 
 https://github.com/ArterraSF/evse-billing
+
+---
+
+## Development Notes
+
+### Rebuilding the CSS
+
+This project uses the [Tailwind CSS standalone CLI](https://github.com/tailwindlabs/tailwindcss/releases/latest) — no Node.js or npm required.
+
+**First-time setup:** Download the binary for your platform from the [latest Tailwind CSS release](https://github.com/tailwindlabs/tailwindcss/releases/latest) and place it in the repo root:
+
+```bash
+# macOS (Apple Silicon)
+curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-macos-arm64
+chmod +x tailwindcss-macos-arm64
+
+# macOS (Intel)
+curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-macos-x64
+chmod +x tailwindcss-macos-x64
+
+# Linux
+curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
+chmod +x tailwindcss-linux-x64
+
+# Windows
+curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-windows-x64.exe
+```
+
+**Whenever you modify `index.html`**, rebuild `tailwind.css` before committing:
+
+```bash
+# macOS (Apple Silicon)
+./tailwindcss-macos-arm64 -i input.css -o tailwind.css --minify
+
+# macOS (Intel)
+./tailwindcss-macos-x64 -i input.css -o tailwind.css --minify
+
+# Linux
+./tailwindcss-linux-x64 -i input.css -o tailwind.css --minify
+
+# Windows
+.\tailwindcss-windows-x64.exe -i input.css -o tailwind.css --minify
+```
+
+The compiled `tailwind.css` is committed to the repo so GitHub Pages can serve it directly with no build pipeline.
