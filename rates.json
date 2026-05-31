@@ -5,6 +5,11 @@
     "https://www.pge.com/tariffs/assets/pdf/tariffbook/ELEC_SCHEDS_B-6.pdf",
     "https://www.cleanpowersf.org/rates"
   ],
+  "seasons": {
+    "summer": [6, 7, 8, 9],
+    "spring": [3, 4, 5],
+    "winter": [10, 11, 12, 1, 2]
+  },
   "B6": {
     "_name": "Schedule B-6 (General Commercial TOU)",
     "summerPeak":         0.50981,
