@@ -233,9 +233,103 @@
                 </div>
             </div>
         </div>
+
+        <!-- Peak Demand Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hidden mt-6" id="peakDemandCard">
+            <div class="p-5 border-b border-gray-100 bg-slate-50 flex justify-between items-center flex-wrap gap-2">
+                <h3 class="text-lg font-bold text-slate-800">Peak Demand Analysis (15-Minute Data)</h3>
+                <span id="peakDemandBadge" class="text-xs bg-amber-100 text-amber-800 font-semibold px-2.5 py-1 rounded-full"></span>
+            </div>
+            <div class="p-5">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div class="text-xs text-slate-500 uppercase tracking-wider mb-1">Peak Simultaneous Draw</div>
+                        <div id="peakKw" class="text-2xl font-extrabold text-slate-800"></div>
+                        <div class="text-xs text-slate-400 mt-1">kW</div>
+                    </div>
+                    <div class="bg-slate-50 rounded-lg p-4 text-center">
+                        <div class="text-xs text-slate-500 uppercase tracking-wider mb-1">Peak Occurred</div>
+                        <div id="peakTimestamp" class="text-sm font-bold text-slate-800 mt-2"></div>
+                    </div>
+                    <div class="bg-amber-50 rounded-lg p-4 text-center border border-amber-200">
+                        <div class="text-xs text-amber-700 uppercase tracking-wider mb-1">BEV1 Blocks Needed</div>
+                        <div id="peakBlocks" class="text-2xl font-extrabold text-amber-800"></div>
+                        <div class="text-xs text-amber-600 mt-1">× 10 kW blocks @ $12.41/block</div>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-800 text-white uppercase text-xs tracking-wider">
+                                <th class="p-3">Top 10 Peak Intervals</th>
+                                <th class="p-3 text-right">Total kW</th>
+                            </tr>
+                        </thead>
+                        <tbody id="peakTableBody" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
+        function analysePeakDemand(csvText) {
+            const lines = csvText.trim().split('\n');
+            if (lines.length < 2) return;
+
+            const headers = lines[0].split(',').map(h => h.trim());
+            const timeIdx = headers.findIndex(k => /time|bucket|date/i.test(k));
+
+            // Build header map merging duplicates, excluding mains
+            const headerMap = {};
+            headers.forEach((h, i) => {
+                if (i === timeIdx || /mains_[abc]/i.test(h)) return;
+                if (!headerMap[h]) headerMap[h] = [];
+                headerMap[h].push(i);
+            });
+
+            const intervals = [];
+            for (let i = 1; i < lines.length; i++) {
+                const cols = lines[i].trim().split(',');
+                if (!cols[timeIdx]) continue;
+                const timestamp = cols[timeIdx].trim();
+                let totalKw = 0;
+                Object.values(headerMap).forEach(indices => {
+                    indices.forEach(ci => {
+                        const v = cols[ci] ? cols[ci].trim() : '';
+                        if (v && v !== 'No CT') totalKw += parseFloat(v) || 0;
+                    });
+                });
+                intervals.push({ timestamp, totalKw });
+            }
+
+            if (!intervals.length) return;
+
+            intervals.sort((a, b) => b.totalKw - a.totalKw);
+            const peak = intervals[0];
+            const blocksNeeded = Math.ceil(peak.totalKw / 10) || 1;
+            const monthlyCost = blocksNeeded * 12.41;
+
+            document.getElementById('peakKw').innerText = peak.totalKw.toFixed(3);
+            document.getElementById('peakTimestamp').innerText = peak.timestamp;
+            document.getElementById('peakBlocks').innerText = blocksNeeded;
+            document.getElementById('peakDemandBadge').innerText =
+                `${blocksNeeded} block${blocksNeeded > 1 ? 's' : ''} = $${monthlyCost.toFixed(2)}/month subscription`;
+
+            const tbody = document.getElementById('peakTableBody');
+            tbody.innerHTML = '';
+            intervals.slice(0, 10).forEach(({ timestamp, totalKw }) => {
+                tbody.insertAdjacentHTML('beforeend', `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-3 font-mono text-slate-600">${timestamp}</td>
+                        <td class="p-3 text-right font-mono font-bold">${totalKw.toFixed(3)} kW</td>
+                    </tr>`);
+            });
+
+            document.getElementById('peakDemandCard').classList.remove('hidden');
+        }
+
         function exportPDF() {
             const tariff = document.getElementById('tariffSelector').value;
             const paperBill = document.getElementById('paperBillInput').value;
@@ -327,7 +421,13 @@
                     JSZip.loadAsync(e.target.result).then(function(zip) {
                         const csvFile = Object.keys(zip.files).find(n => n.endsWith('1H.csv')) ||
                                         Object.keys(zip.files).find(n => n.endsWith('.csv'));
-                        if (!csvFile) { showError("⚠️ No CSV file found inside the ZIP archive."); return; }
+                        if (!csvFile) { showError('⚠️ No CSV file found inside the ZIP archive.'); return Promise.reject('no_csv'); }
+
+                        // Also extract 15MIN file for peak demand analysis if present
+                        const csv15File = Object.keys(zip.files).find(n => n.endsWith('15MIN.csv'));
+                        const p15 = csv15File ? zip.files[csv15File].async('string') : Promise.resolve(null);
+                        p15.then(csv15 => { if (csv15) { try { analysePeakDemand(csv15); } catch(e) {} } });
+
                         return zip.files[csvFile].async('string');
                     }).then(function(csvText) {
                         if (csvText) {
@@ -337,7 +437,7 @@
                                 showError('⚠️ Failed to process CSV: ' + err.message);
                             }
                         }
-                    }).catch(err => showError('⚠️ Failed to parse ZIP: ' + err.message));
+                    }).catch(err => { if (err !== 'no_csv') showError('⚠️ Failed to parse ZIP: ' + err.message); });
                 } else {
                     try {
                         processCSV(e.target.result);
