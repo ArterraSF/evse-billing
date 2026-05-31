@@ -298,6 +298,7 @@
         }
 
         function handleFileSelect(event) {
+            if (!SEASONS.summer) { showError('⚠️ Still loading rates, please try again in a moment.'); return; }
             showError('');
             const file = event.target.files[0];
             if (!file) return;
@@ -314,8 +315,8 @@
                         if (!csvFile) { showError("⚠️ No CSV file found inside the ZIP archive."); return; }
                         return zip.files[csvFile].async('string');
                     }).then(function(csvText) {
-                        if (csvText) processCSV(csvText);
-                    }).catch(err => showError("⚠️ Failed to parse ZIP: " + err.message));
+                        if (csvText) setTimeout(() => processCSV(csvText), 0);
+                    }).catch(err => showError('⚠️ Failed to read ZIP file: ' + err.message));
                 } else {
                     processCSV(e.target.result);
                 }
