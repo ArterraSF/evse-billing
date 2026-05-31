@@ -123,7 +123,7 @@
                     <p class="text-xs text-gray-500 mb-4">Upload the raw <strong>.zip</strong> archive downloaded from your Emporia portal. The app extracts the hourly data automatically. See <button onclick="openHelp()" class="text-blue-600 underline">Help</button> for export instructions.</p>
                 </div>
                 <div class="border-2 border-dashed border-blue-300 bg-blue-50/30 rounded-lg p-4 text-center hover:bg-blue-50 transition relative">
-                    <input type="file" id="zipFileInput" accept=".zip,.csv" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" onchange="handleFileSelect(event)">
+                    <input type="file" id="zipFileInput" accept=".zip,.csv" disabled class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" onchange="handleFileSelect(event)">
                     <div class="text-sm text-slate-600 font-medium">
                         <span class="text-blue-600 underline font-bold">Choose ZIP or CSV</span> or drag it here
                         <p id="fileNameDisplay" class="text-xs text-green-600 font-semibold mt-2 hidden"></p>
@@ -267,6 +267,7 @@
                         });
                     });
                     syncRateUI();
+                    document.getElementById('zipFileInput').disabled = false;
                 })
                 .catch(err => showError(`⚠️ Could not load rates.json: ${err.message}`));
         });
@@ -323,6 +324,7 @@
         }
 
         function processCSV(csvText) {
+            if (!SEASONS.summer) { showError('⚠️ Rates not loaded yet. Please wait a moment and try again.'); return; }
             const readType = (csvText instanceof ArrayBuffer) ? 'array' : 'string';
             const workbook = XLSX.read(csvText, { type: readType, cellDates: true });
             const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
