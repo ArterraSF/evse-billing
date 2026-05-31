@@ -314,10 +314,20 @@
                         if (!csvFile) { showError("⚠️ No CSV file found inside the ZIP archive."); return; }
                         return zip.files[csvFile].async('string');
                     }).then(function(csvText) {
-                        if (csvText) processCSV(csvText);
+                        if (csvText) {
+                            try {
+                                processCSV(csvText);
+                            } catch(err) {
+                                showError('⚠️ Failed to process CSV: ' + err.message);
+                            }
+                        }
                     }).catch(err => showError('⚠️ Failed to parse ZIP: ' + err.message));
                 } else {
-                    processCSV(e.target.result);
+                    try {
+                        processCSV(e.target.result);
+                    } catch(err) {
+                        showError('⚠️ Failed to read file: ' + err.message);
+                    }
                 }
             };
             reader.readAsArrayBuffer(file);
