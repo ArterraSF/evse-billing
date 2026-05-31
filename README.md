@@ -145,6 +145,54 @@ This app runs entirely in the browser. The Emporia ZIP file is parsed locally in
 
 ---
 
+## How Residents Can Verify the Calculations
+
+The source code is fully open and auditable. Any resident who wants to verify their bill can do so at any level of technical depth.
+
+### 1. Verify the TOU rate assignments
+
+Open [`rates.json`](./rates.json) in the repository. The five rate values are the **combined blended rate** in dollars per kWh — PG&E delivery plus CleanPowerSF generation added together. Cross-check them against:
+- [PG&E Schedule B-6 tariff sheet](https://www.pge.com/tariffs/assets/pdf/tariffbook/ELEC_SCHEDS_B-6.pdf)
+- [CleanPowerSF rates page](https://www.cleanpowersf.org/rates)
+
+### 2. Verify the seasonal hour windows
+
+The hour boundaries are defined in `index.html` and match the PG&E tariff exactly:
+
+| Window | Condition in code | Hours |
+|---|---|---|
+| Peak (all seasons) | `hour >= 16 && hour < 21` | 4:00 PM – 8:59 PM |
+| Spring Super Off-Peak | `hour >= 9 && hour < 14` | 9:00 AM – 1:59 PM |
+| Off-Peak | everything else | remaining hours |
+
+Note: spring peak hours use the same rate as winter peak — this is correct per the PG&E B-6 tariff, which defines a single non-summer peak rate applying October through May.
+
+### 3. Verify the pro-rata multiplier
+
+The multiplier is simple arithmetic you can check with a calculator:
+
+```
+Multiplier = Total Paper Bill ÷ Sum of All Raw TOU Costs
+```
+
+The "Raw TOU Cost" column in the results table shows each circuit's energy-only cost before the multiplier is applied. Sum that column, divide the paper bill total by that sum, and you get the multiplier shown in the badge.
+
+### 4. Verify a specific circuit manually
+
+To spot-check a single parking space:
+
+1. Export the hourly CSV from Emporia and open it in Excel or Google Sheets
+2. Filter rows to your circuit's column
+3. For each row, look up the timestamp hour and month, determine the correct rate from `rates.json`, and multiply kWh × rate
+4. Sum all rows — this should match the **Raw TOU Cost** shown in the app
+5. Multiply by the pro-rata multiplier — this should match the **Final Billed Amount**
+
+### 5. Audit the source code directly
+
+The entire application is a single file — [`index.html`](./index.html). The billing logic is in the `processCSV()` and `calculateBilling()` functions. There is no backend, no database, and no external service involved. Everything that happens to your data happens in those two functions, in your browser.
+
+---
+
 ## Repository
 
 https://github.com/ArterraSF/evse-billing
