@@ -7,6 +7,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        @media print {
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { position: fixed; inset: 0; padding: 2rem; }
+            #printHeader { display: flex !important; }
+        }
+    </style>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans text-gray-800">
 
@@ -185,29 +193,50 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hidden" id="resultsCard">
             <div class="p-5 border-b border-gray-100 bg-slate-50 flex justify-between items-center flex-wrap gap-2">
                 <h3 class="text-lg font-bold text-slate-800">Submetered Infrastructure Statement Summary</h3>
-                <span id="adjustmentFactorBadge" class="text-xs bg-blue-100 text-blue-800 font-semibold px-2.5 py-1 rounded-full">Pro-Rata Tax Multiplier: --</span>
+                <div class="flex items-center gap-3">
+                    <span id="adjustmentFactorBadge" class="text-xs bg-blue-100 text-blue-800 font-semibold px-2.5 py-1 rounded-full">Pro-Rata Tax Multiplier: --</span>
+                    <button onclick="exportPDF()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-900 text-white text-xs font-semibold transition">⬇ Export PDF</button>
+                </div>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-800 text-white uppercase text-xs tracking-wider font-semibold">
-                            <th class="p-4">Circuit / Parking Space</th>
-                            <th class="p-4 text-center">Total kWh</th>
-                            <th class="p-4 text-right">Raw TOU Cost</th>
-                            <th class="p-4 text-right bg-blue-900">Final Billed Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody id="billingTableBody" class="divide-y divide-gray-200 text-sm"></tbody>
-                    <tfoot>
-                        <tr id="tableTotalsRow" class="bg-slate-100 font-bold text-slate-900 border-t-2 border-slate-300"></tr>
-                    </tfoot>
-                </table>
+            <div id="printArea">
+                <!-- Print-only header -->
+                <div id="printHeader" class="hidden items-center gap-4 p-6 border-b border-gray-200">
+                    <img src="arterra-logo.jpg" alt="Arterra Owners Association" class="h-10 w-auto">
+                    <div>
+                        <div class="font-bold text-slate-800">Arterra Owners Association — EVSE Statement</div>
+                        <div id="printMeta" class="text-xs text-slate-500"></div>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-800 text-white uppercase text-xs tracking-wider font-semibold">
+                                <th class="p-4">Circuit / Parking Space</th>
+                                <th class="p-4 text-center">Total kWh</th>
+                                <th class="p-4 text-right">Raw TOU Cost</th>
+                                <th class="p-4 text-right bg-blue-900">Final Billed Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="billingTableBody" class="divide-y divide-gray-200 text-sm"></tbody>
+                        <tfoot>
+                            <tr id="tableTotalsRow" class="bg-slate-100 font-bold text-slate-900 border-t-2 border-slate-300"></tr>
+                        </tfoot>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        function openHelp() {
+        function exportPDF() {
+            // Populate the print-only header with billing period and tariff info
+            const tariff = document.getElementById('tariffSelector').value;
+            const paperBill = document.getElementById('paperBillInput').value;
+            const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('printMeta').innerText =
+                `Generated ${date} · Tariff: ${tariff}` + (paperBill ? ` · Paper Bill: $${parseFloat(paperBill).toFixed(2)}` : '');
+            window.print();
+        }
             document.getElementById('helpDrawer').classList.remove('translate-x-full');
             document.getElementById('helpBackdrop').classList.remove('hidden');
         }
