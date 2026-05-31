@@ -53,8 +53,11 @@ The results table updates instantly when switching between tariffs.
 |---|---|
 | Circuit / Parking Space | Auto-detected label from the Emporia export |
 | Total kWh | Total energy consumed by that circuit during the billing period |
-| Raw TOU Cost | Energy-only cost calculated using the seasonal TOU rates |
+| TOU Breakdown | Cost split across Peak (red), Off-Peak (grey), and Super Off-Peak (green) — only tiers with non-zero usage are shown |
+| Raw TOU Cost | Energy-only cost calculated using the seasonal TOU rates — the sum of the three breakdown tiers |
 | Final Billed Amount | Raw TOU cost scaled by the pro-rata multiplier to include taxes and fees |
+
+The breakdown column is the key tool for motivating behaviour change. A resident who sees most of their cost in red (peak) has a clear, quantified incentive to schedule their car to charge overnight instead.
 
 ### The Pro-Rata Multiplier
 
@@ -242,6 +245,8 @@ To spot-check a single parking space:
 ### 5. Audit the source code directly
 
 The entire application is a single file — [`index.html`](./index.html). The billing logic is in the `processCSV()` and `calculateBilling()` functions, and the peak demand logic is in `analysePeakDemand()`. There is no backend, no database, and no external service involved. Everything that happens to your data happens in those functions, in your browser.
+
+The TOU breakdown column (Peak / Off-Peak / Super Off-Peak) is calculated inside `calculateBilling()` using explicit bucket name checks — the same season and hour logic that determines the rate also determines which tier each hour's cost is attributed to.
 
 ---
 

@@ -274,6 +274,12 @@
 
     </div>
 
+    <footer class="mt-12 border-t border-gray-200 py-6 text-center text-xs text-slate-400">
+        <a href="https://github.com/ArterraSF/evse-billing" target="_blank" class="hover:text-slate-600 transition">github.com/ArterraSF/evse-billing</a>
+        <span class="mx-2">·</span>
+        <span>Last updated: <span id="lastUpdated">loading…</span></span>
+    </footer>
+
     <script>
         function analysePeakDemand(csvText) {
             const lines = csvText.trim().split('\n');
@@ -355,6 +361,16 @@
 
         // Load rates.json then initialise the UI
         window.addEventListener('DOMContentLoaded', () => {
+            // Fetch last commit date from GitHub API
+            fetch('https://api.github.com/repos/ArterraSF/evse-billing/commits/main')
+                .then(r => r.json())
+                .then(d => {
+                    const date = new Date(d.commit.committer.date)
+                        .toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                    document.getElementById('lastUpdated').innerText = date;
+                })
+                .catch(() => { document.getElementById('lastUpdated').innerText = 'unavailable'; });
+
             fetch('rates.json')
                 .then(r => {
                     if (!r.ok) throw new Error(`HTTP ${r.status}`);
