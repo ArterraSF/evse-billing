@@ -93,28 +93,36 @@ The season month arrays are stored in the `"seasons"` block in [`rates.json`](./
 
 When PG&E or CleanPowerSF publish new rates (typically effective **July 1** each year), edit [`rates.json`](./rates.json) in this repository. No other file needs to change.
 
+Rates are stored as two separate sub-objects under each tariff — `delivery` (PG&E) and `generation` (CleanPowerSF) — because the two utilities publish their rates independently and on different schedules. The app adds them together at runtime. This means when only one changes, you update only that sub-object without having to do any arithmetic.
+
 ```json
 {
-  "_lastUpdated": "2026-07-01",
   "B6": {
-    "summerPeak":         0.50981,
-    "summerOffPeak":      0.45089,
-    "winterPeak":         0.49700,
-    "winterOffPeak":      0.43700,
-    "springSuperOffPeak": 0.40005
-  },
-  "BEV1": {
-    "summerPeak":         0.49500,
-    ...
+    "delivery": {
+      "_source": "PG&E Electric Delivery Charges — Schedule B-6",
+      "summerPeak":         0.39584,
+      "summerOffPeak":      0.35225,
+      "winterPeak":         0.39584,
+      "winterOffPeak":      0.35225,
+      "springSuperOffPeak": 0.31617
+    },
+    "generation": {
+      "_source": "CleanPowerSF Electric Generation Charges — Schedule B-6",
+      "summerPeak":         0.11397,
+      "summerOffPeak":      0.09864,
+      "winterPeak":         0.11397,
+      "winterOffPeak":      0.09864,
+      "springSuperOffPeak": 0.08388
+    }
   }
 }
 ```
 
-All values are the **combined blended rate** in dollars per kWh — PG&E delivery charges plus CleanPowerSF generation charges added together.
-
 **Where to find updated rates:**
 - PG&E Schedule B-6: https://www.pge.com/tariffs/assets/pdf/tariffbook/ELEC_SCHEDS_B-6.pdf
 - CleanPowerSF rates: https://www.cleanpowersf.org/rates
+
+The rates on your paper bill are the easiest source to verify against — PG&E lists delivery charges and CleanPowerSF lists generation charges on separate pages, matching the two sub-objects in `rates.json` exactly.
 
 Update `_lastUpdated` to the effective date when saving changes. The git commit history serves as an audit trail of every rate change.
 
@@ -151,7 +159,11 @@ The source code is fully open and auditable. Any resident who wants to verify th
 
 ### 1. Verify the TOU rate assignments
 
-Open [`rates.json`](./rates.json) in the repository. The five rate values are the **combined blended rate** in dollars per kWh — PG&E delivery plus CleanPowerSF generation added together. Cross-check them against:
+Open [`rates.json`](./rates.json) in the repository. Rates are stored as two separate sub-objects — `delivery` (PG&E) and `generation` (CleanPowerSF) — which the app adds together at runtime. Cross-check each against your paper bill:
+- PG&E delivery charges appear on page 3 of the bill under **"Details of PG&E Electric Delivery Charges"**
+- CleanPowerSF generation charges appear on page 4 under **"Details of CleanPowerSF Electric Generation Charges"**
+
+You can also verify against the published tariff sheets:
 - [PG&E Schedule B-6 tariff sheet](https://www.pge.com/tariffs/assets/pdf/tariffbook/ELEC_SCHEDS_B-6.pdf)
 - [CleanPowerSF rates page](https://www.cleanpowersf.org/rates)
 

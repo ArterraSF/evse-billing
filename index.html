@@ -262,8 +262,10 @@
                     SEASONS = data.seasons;
                     ['B6', 'BEV1'].forEach(t => {
                         RATES[t] = {};
-                        Object.entries(data[t]).forEach(([k, v]) => {
-                            if (!k.startsWith('_')) RATES[t][k] = v;
+                        const d = data[t].delivery;
+                        const g = data[t].generation;
+                        ['summerPeak','summerOffPeak','winterPeak','winterOffPeak','springSuperOffPeak'].forEach(k => {
+                            RATES[t][k] = (d[k] || 0) + (g[k] || 0);
                         });
                     });
                     syncRateUI();
