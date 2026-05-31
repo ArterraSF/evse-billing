@@ -221,6 +221,7 @@
                             <tr class="bg-slate-800 text-white uppercase text-xs tracking-wider font-semibold">
                                 <th class="p-4">Circuit / Parking Space</th>
                                 <th class="p-4 text-center">Total kWh</th>
+                                <th class="p-4 text-right">TOU Breakdown</th>
                                 <th class="p-4 text-right">Raw TOU Cost</th>
                                 <th class="p-4 text-right bg-blue-900">Final Billed Amount</th>
                             </tr>
@@ -526,14 +527,21 @@
             const rates = RATES[tariff];
 
             const metrics = {};
-            circuitHeaders.forEach(h => { metrics[h] = { kwh: 0, rawCost: 0 }; });
+            circuitHeaders.forEach(h => { metrics[h] = { kwh: 0, rawCost: 0, peak: 0, offPeak: 0, superOffPeak: 0 }; });
+
+            const isPeak      = b => b === 'summerPeak'   || b === 'winterPeak';
+            const isSuperOff  = b => b === 'summerSuperOffPeak' || b === 'winterSuperOffPeak' || b === 'springSuperOffPeak';
 
             parsedData.forEach(({ row, seasonBucket }) => {
                 circuitHeaders.forEach(h => {
                     const raw = row[h];
                     const kwh = (typeof raw === 'number') ? raw : ((raw === 'No CT' || raw === undefined) ? 0 : (parseFloat(raw) || 0));
+                    const cost = kwh * rates[seasonBucket];
                     metrics[h].kwh += kwh;
-                    metrics[h].rawCost += kwh * rates[seasonBucket];
+                    metrics[h].rawCost += cost;
+                    if (isPeak(seasonBucket))          metrics[h].peak += cost;
+                    else if (isSuperOff(seasonBucket)) metrics[h].superOffPeak += cost;
+                    else                               metrics[h].offPeak += cost;
                 });
             });
 
@@ -555,10 +563,16 @@
                 totalKwh += m.kwh; totalRaw += m.rawCost; totalFinal += finalCost;
 
                 const name = h.replace(/Home-|Mains_[AB]_| \(kWhs?\)/g, '');
+                const breakdown = [
+                    m.peak > 0        ? `<span class="text-red-600">Peak: $${m.peak.toFixed(2)}</span>` : '',
+                    m.offPeak > 0     ? `<span class="text-slate-500">Off-Peak: $${m.offPeak.toFixed(2)}</span>` : '',
+                    m.superOffPeak > 0 ? `<span class="text-green-600">Super Off-Peak: $${m.superOffPeak.toFixed(2)}</span>` : '',
+                ].filter(Boolean).join('<br>');
                 tbody.insertAdjacentHTML('beforeend', `
                     <tr class="hover:bg-slate-50 transition">
                         <td class="p-4 font-medium text-slate-700">${name}</td>
                         <td class="p-4 text-center font-mono">${m.kwh.toFixed(2)}</td>
+                        <td class="p-4 text-right text-xs leading-5">${breakdown || '<span class="text-slate-300">—</span>'}</td>
                         <td class="p-4 text-right text-gray-400 font-mono">$${m.rawCost.toFixed(2)}</td>
                         <td class="p-4 text-right font-bold text-slate-900 bg-blue-50/40 font-mono">$${finalCost.toFixed(2)}</td>
                     </tr>`);
@@ -567,6 +581,7 @@
             document.getElementById('tableTotalsRow').innerHTML = `
                 <td class="p-4 font-bold">Total</td>
                 <td class="p-4 text-center font-mono font-bold">${totalKwh.toFixed(2)}</td>
+                <td class="p-4"></td>
                 <td class="p-4 text-right font-mono font-bold">$${totalRaw.toFixed(2)}</td>
                 <td class="p-4 text-right text-blue-900 font-extrabold bg-blue-100 font-mono">$${(paperBill > 0 ? paperBill : totalFinal).toFixed(2)}</td>`;
         }
