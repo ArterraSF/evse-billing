@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arterra HOA EV Infrastructure Billing Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans text-gray-800">
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <header class="mb-8 border-b border-gray-200 pb-6 flex items-center gap-6">
+            <img src="arterra-logo.jpg" alt="Arterra Owners Association" class="h-12 w-auto">
+            <p class="text-sm text-slate-500 italic">Universal Multi-Circuit EVSE Infrastructure Statement Engine (2026 TOU Seasonal Matrix)</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center gap-2 mb-3">
+                        <h2 class="text-md font-bold text-slate-700 uppercase tracking-wider">1. Upload Raw Emporia ZIP</h2>
+                        <div class="relative group">
+                            <button class="w-5 h-5 rounded-full bg-slate-200 text-slate-600 text-xs font-bold flex items-center justify-center hover:bg-blue-500 hover:text-white transition flex-shrink-0" aria-label="How to get Emporia data">?</button>
+                            <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-80 bg-slate-800 text-white text-xs rounded-lg p-4 shadow-xl hidden group-hover:block z-10 pointer-events-none">
+                                <div class="font-bold text-blue-300 mb-2">How to export from Emporia:</div>
+                                <ol class="space-y-2 list-none">
+                                    <li class="flex gap-2"><span class="text-blue-400 font-bold flex-shrink-0">1.</span><span>Open the <span class="text-blue-300 underline">Emporia Web App Menu</span> at <span class="font-mono text-green-300">web.emporiaenergy.com/menu</span></span></li>
+                                    <li class="flex gap-2"><span class="text-blue-400 font-bold flex-shrink-0">2.</span><span>Select <span class="text-yellow-300 font-semibold">"Export Raw Data to CSV"</span> and choose your Emporia device.</span></li>
+                                    <li class="flex gap-2"><span class="text-blue-400 font-bold flex-shrink-0">3.</span><span>Set the Start and End Date to match your paper billing period.</span></li>
+                                    <li class="flex gap-2"><span class="text-blue-400 font-bold flex-shrink-0">4.</span><span>Click <span class="text-yellow-300 font-semibold">"Export Data"</span> — you'll receive an email with a link to download the ZIP file.</span></li>
+                                </ol>
+                                <!-- Tooltip arrow -->
+                                <div class="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-slate-800"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-4">Upload the raw <strong>.zip</strong> archive downloaded from your Emporia portal. The app extracts the hourly data automatically.</p>
+                </div>
+                <div class="border-2 border-dashed border-blue-300 bg-blue-50/30 rounded-lg p-4 text-center hover:bg-blue-50 transition relative">
+                    <input type="file" id="zipFileInput" accept=".zip,.csv" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" onchange="handleFileSelect(event)">
+                    <div class="text-sm text-slate-600 font-medium">
+                        <span class="text-blue-600 underline font-bold">Choose ZIP or CSV</span> or drag it here
+                        <p id="fileNameDisplay" class="text-xs text-green-600 font-semibold mt-2 hidden"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-md font-bold text-slate-700 uppercase tracking-wider mb-3">2. Paper Bill Total</h2>
+                    <p class="text-xs text-gray-500 mb-4">Enter the exact final dollar total from the paper utility bill to pro-rate taxes, customer fees, and fixed charges.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Total Paper Bill Amount ($)</label>
+                    <input type="number" id="paperBillInput" step="0.01" placeholder="e.g. 426.68" class="w-full border border-gray-300 rounded-lg p-2.5 text-slate-800 font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none" oninput="calculateBilling()">
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-md font-bold text-slate-700 uppercase tracking-wider mb-3">3. Tariff Selection</h2>
+                    <p class="text-xs text-gray-500 mb-4">Switch between standard commercial TOU or dedicated EV tariff.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Active Billing Ruleset</label>
+                    <select id="tariffSelector" class="w-full border border-gray-300 rounded-lg p-2.5 text-orange-600 font-bold bg-orange-50 focus:ring-2 focus:ring-orange-500 focus:outline-none" onchange="syncRateUI(); calculateBilling()">
+                        <option value="B6">Schedule B-6 (General Commercial TOU)</option>
+                        <option value="BEV1">Schedule BEV1 (Dedicated Business EV)</option>
+                    </select>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Admin Rate Settings Panel -->
+        <details class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8 overflow-hidden">
+            <summary class="p-4 font-bold text-slate-700 bg-slate-100 cursor-pointer select-none uppercase tracking-wider text-xs flex justify-between items-center">
+                <span>⚙️ Advanced: Update CleanPowerSF / PG&E Rate Metrics</span>
+                <span class="text-blue-600 font-medium normal-case text-xs">Click to open/edit</span>
+            </summary>
+            <div class="p-6 grid grid-cols-2 sm:grid-cols-5 gap-4 bg-slate-50 border-t border-gray-200">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Summer Peak ($)</label>
+                    <input type="number" id="rate_summerPeak" step="0.00001" class="w-full border p-2 rounded text-sm font-mono font-bold" oninput="updateRatesFromUI()">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Summer Off-Peak ($)</label>
+                    <input type="number" id="rate_summerOffPeak" step="0.00001" class="w-full border p-2 rounded text-sm font-mono font-bold" oninput="updateRatesFromUI()">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Winter Peak ($)</label>
+                    <input type="number" id="rate_winterPeak" step="0.00001" class="w-full border p-2 rounded text-sm font-mono font-bold" oninput="updateRatesFromUI()">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Winter Off-Peak ($)</label>
+                    <input type="number" id="rate_winterOffPeak" step="0.00001" class="w-full border p-2 rounded text-sm font-mono font-bold" oninput="updateRatesFromUI()">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1">Spring Super Off-Peak ($)</label>
+                    <input type="number" id="rate_springSuperOffPeak" step="0.00001" class="w-full border p-2 rounded text-sm font-mono font-bold" oninput="updateRatesFromUI()">
+                </div>
+            </div>
+        </details>
+
+        <div id="errorPanel" class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl mb-8 hidden text-sm font-medium"></div>
+
+        <!-- Results Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hidden" id="resultsCard">
+            <div class="p-5 border-b border-gray-100 bg-slate-50 flex justify-between items-center flex-wrap gap-2">
+                <h3 class="text-lg font-bold text-slate-800">Submetered Infrastructure Statement Summary</h3>
+                <span id="adjustmentFactorBadge" class="text-xs bg-blue-100 text-blue-800 font-semibold px-2.5 py-1 rounded-full">Pro-Rata Tax Multiplier: --</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-800 text-white uppercase text-xs tracking-wider font-semibold">
+                            <th class="p-4">Circuit / Parking Space</th>
+                            <th class="p-4 text-center">Total kWh</th>
+                            <th class="p-4 text-right">Raw TOU Cost</th>
+                            <th class="p-4 text-right bg-blue-900">Final Billed Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="billingTableBody" class="divide-y divide-gray-200 text-sm"></tbody>
+                    <tfoot>
+                        <tr id="tableTotalsRow" class="bg-slate-100 font-bold text-slate-900 border-t-2 border-slate-300"></tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let RATES = {};
+        let parsedData = [];
+        let circuitHeaders = [];
+
+        // Load rates.json then initialise the UI
+        window.addEventListener('DOMContentLoaded', () => {
+            fetch('rates.json')
+                .then(r => {
+                    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                    return r.json();
+                })
+                .then(data => {
+                    // Strip metadata keys (prefixed with _) before storing
+                    ['B6', 'BEV1'].forEach(t => {
+                        RATES[t] = {};
+                        Object.entries(data[t]).forEach(([k, v]) => {
+                            if (!k.startsWith('_')) RATES[t][k] = v;
+                        });
+                    });
+                    syncRateUI();
+                })
+                .catch(err => showError(`⚠️ Could not load rates.json: ${err.message}`));
+        });
+
+        function syncRateUI() {
+            const t = document.getElementById('tariffSelector').value;
+            document.getElementById('rate_summerPeak').value = RATES[t].summerPeak;
+            document.getElementById('rate_summerOffPeak').value = RATES[t].summerOffPeak;
+            document.getElementById('rate_winterPeak').value = RATES[t].winterPeak;
+            document.getElementById('rate_winterOffPeak').value = RATES[t].winterOffPeak;
+            document.getElementById('rate_springSuperOffPeak').value = RATES[t].springSuperOffPeak;
+        }
+
+        function updateRatesFromUI() {
+            const t = document.getElementById('tariffSelector').value;
+            RATES[t].summerPeak = parseFloat(document.getElementById('rate_summerPeak').value) || 0;
+            RATES[t].summerOffPeak = parseFloat(document.getElementById('rate_summerOffPeak').value) || 0;
+            RATES[t].winterPeak = parseFloat(document.getElementById('rate_winterPeak').value) || 0;
+            RATES[t].winterOffPeak = parseFloat(document.getElementById('rate_winterOffPeak').value) || 0;
+            RATES[t].springSuperOffPeak = parseFloat(document.getElementById('rate_springSuperOffPeak').value) || 0;
+            calculateBilling();
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorPanel');
+            if (msg) { el.innerText = msg; el.classList.remove('hidden'); }
+            else { el.classList.add('hidden'); }
+        }
+
+        function handleFileSelect(event) {
+            showError('');
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('fileNameDisplay').innerText = `📦 ${file.name}`;
+            document.getElementById('fileNameDisplay').classList.remove('hidden');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (file.name.endsWith('.zip')) {
+                    JSZip.loadAsync(e.target.result).then(function(zip) {
+                        const csvFile = Object.keys(zip.files).find(n => n.endsWith('1H.csv')) ||
+                                        Object.keys(zip.files).find(n => n.endsWith('.csv'));
+                        if (!csvFile) { showError("⚠️ No CSV file found inside the ZIP archive."); return; }
+                        return zip.files[csvFile].async('string');
+                    }).then(function(csvText) {
+                        if (csvText) processCSV(csvText);
+                    }).catch(err => showError("⚠️ Failed to parse ZIP: " + err.message));
+                } else {
+                    processCSV(e.target.result);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processCSV(csvText) {
+            const readType = (csvText instanceof ArrayBuffer) ? 'array' : 'string';
+            const workbook = XLSX.read(csvText, { type: readType, cellDates: true });
+            const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+            if (!json.length) { showError("⚠️ The CSV file appears empty."); return; }
+
+            const allKeys = Object.keys(json[0]);
+            const timeKey = allKeys.find(k => /time|bucket|date/i.test(k));
+            // Exclude the time column and any Mains_C (unmonitored/balance channel)
+            circuitHeaders = allKeys.filter(k => k !== timeKey && !/mains_c/i.test(k));
+
+            parsedData = json.map(row => {
+                // Parse "MM/DD/YYYY HH:MM:SS" reliably across all browsers
+                const raw = String(row[timeKey]);
+                const [datePart, timePart] = raw.split(' ');
+                const [mo, dy, yr] = datePart.split('/');
+                const [hr] = (timePart || '0:0:0').split(':');
+                const month = parseInt(mo, 10);
+                const hour = parseInt(hr, 10);
+
+                let seasonBucket;
+                if ([6,7,8,9].includes(month)) {
+                    seasonBucket = (hour >= 16 && hour < 21) ? 'summerPeak' : 'summerOffPeak';
+                } else if ([3,4,5].includes(month)) {
+                    if (hour >= 16 && hour < 21) seasonBucket = 'winterPeak';
+                    else if (hour >= 9 && hour < 14) seasonBucket = 'springSuperOffPeak';
+                    else seasonBucket = 'winterOffPeak';
+                } else {
+                    seasonBucket = (hour >= 16 && hour < 21) ? 'winterPeak' : 'winterOffPeak';
+                }
+                return { row, seasonBucket };
+            });
+
+            document.getElementById('resultsCard').classList.remove('hidden');
+            calculateBilling();
+        }
+
+        function calculateBilling() {
+            if (!parsedData.length) return;
+
+            const tariff = document.getElementById('tariffSelector').value;
+            const paperBill = parseFloat(document.getElementById('paperBillInput').value) || 0;
+            const rates = RATES[tariff];
+
+            const metrics = {};
+            circuitHeaders.forEach(h => { metrics[h] = { kwh: 0, rawCost: 0 }; });
+
+            parsedData.forEach(({ row, seasonBucket }) => {
+                circuitHeaders.forEach(h => {
+                    const raw = row[h];
+                    const kwh = (raw === 'No CT' || raw === undefined) ? 0 : (parseFloat(raw) || 0);
+                    metrics[h].kwh += kwh;
+                    metrics[h].rawCost += kwh * rates[seasonBucket];
+                });
+            });
+
+            let grandRawCost = 0;
+            circuitHeaders.forEach(h => { grandRawCost += metrics[h].rawCost; });
+
+            const multiplier = (paperBill > 0 && grandRawCost > 0) ? (paperBill / grandRawCost) : 1;
+            document.getElementById('adjustmentFactorBadge').innerText = paperBill > 0
+                ? `Pro-Rata Multiplier: x${multiplier.toFixed(5)}`
+                : 'Showing Raw Energy Costs (No Taxes/Fees)';
+
+            const tbody = document.getElementById('billingTableBody');
+            tbody.innerHTML = '';
+            let totalKwh = 0, totalRaw = 0, totalFinal = 0;
+
+            circuitHeaders.forEach(h => {
+                const m = metrics[h];
+                const finalCost = m.rawCost * multiplier;
+                totalKwh += m.kwh; totalRaw += m.rawCost; totalFinal += finalCost;
+
+                const name = h.replace(/Home-|Mains_[AB]_| \(kWhs?\)/g, '');
+                tbody.insertAdjacentHTML('beforeend', `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4 font-medium text-slate-700">${name}</td>
+                        <td class="p-4 text-center font-mono">${m.kwh.toFixed(2)}</td>
+                        <td class="p-4 text-right text-gray-400 font-mono">$${m.rawCost.toFixed(2)}</td>
+                        <td class="p-4 text-right font-bold text-slate-900 bg-blue-50/40 font-mono">$${finalCost.toFixed(2)}</td>
+                    </tr>`);
+            });
+
+            document.getElementById('tableTotalsRow').innerHTML = `
+                <td class="p-4 font-bold">Total</td>
+                <td class="p-4 text-center font-mono font-bold">${totalKwh.toFixed(2)}</td>
+                <td class="p-4 text-right font-mono font-bold">$${totalRaw.toFixed(2)}</td>
+                <td class="p-4 text-right text-blue-900 font-extrabold bg-blue-100 font-mono">$${(paperBill > 0 ? paperBill : totalFinal).toFixed(2)}</td>`;
+        }
+    </script>
+</body>
+</html>

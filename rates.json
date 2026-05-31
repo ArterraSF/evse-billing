@@ -1,0 +1,24 @@
+{
+  "_comment": "Combined PG&E Delivery + CleanPowerSF Generation blended rates ($/kWh). Update annually when either utility publishes new tariffs, typically effective July 1.",
+  "_lastUpdated": "2026-07-01",
+  "_sources": [
+    "https://www.pge.com/tariffs/assets/pdf/tariffbook/ELEC_SCHEDS_B-6.pdf",
+    "https://www.cleanpowersf.org/rates"
+  ],
+  "B6": {
+    "_name": "Schedule B-6 (General Commercial TOU)",
+    "summerPeak":         0.50981,
+    "summerOffPeak":      0.45089,
+    "winterPeak":         0.49700,
+    "winterOffPeak":      0.43700,
+    "springSuperOffPeak": 0.40005
+  },
+  "BEV1": {
+    "_name": "Schedule BEV1 (Dedicated Business EV)",
+    "summerPeak":         0.49500,
+    "summerOffPeak":      0.38500,
+    "winterPeak":         0.47000,
+    "winterOffPeak":      0.36000,
+    "springSuperOffPeak": 0.30000
+  }
+}
