@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arterra HOA EV Infrastructure Billing Engine</title>
+    <title>Arterra HOA — EVSE Infrastructure Billing Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -11,33 +11,107 @@
 <body class="bg-gray-50 min-h-screen font-sans text-gray-800">
 
     <div class="max-w-7xl mx-auto px-4 py-8">
-        <header class="mb-8 border-b border-gray-200 pb-6 flex items-center gap-6">
-            <img src="arterra-logo.jpg" alt="Arterra Owners Association" class="h-12 w-auto">
-            <p class="text-sm text-slate-500 italic">Universal Multi-Circuit EVSE Infrastructure Statement Engine (2026 TOU Seasonal Matrix)</p>
+        <header class="mb-8 border-b border-gray-200 pb-6 flex items-center justify-between gap-6">
+            <div class="flex items-center gap-6">
+                <img src="arterra-logo.jpg" alt="Arterra Owners Association" class="h-12 w-auto">
+                <p class="text-sm text-slate-500 italic">EVSE Infrastructure Billing Engine</p>
+            </div>
+            <button onclick="openHelp()" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition flex-shrink-0">
+                <span class="text-base">📖</span> Help
+            </button>
         </header>
+
+        <!-- Help Drawer -->
+        <div id="helpBackdrop" class="fixed inset-0 bg-black/40 z-40 hidden" onclick="closeHelp()"></div>
+        <aside id="helpDrawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 flex flex-col translate-x-full transition-transform duration-300 ease-in-out">
+            <div class="flex items-center justify-between p-5 border-b border-gray-200 bg-slate-50">
+                <h2 class="text-lg font-bold text-slate-800">How to Use This App</h2>
+                <button onclick="closeHelp()" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="overflow-y-auto p-6 text-sm text-slate-700 space-y-6">
+
+                <section>
+                    <h3 class="font-bold text-slate-800 uppercase tracking-wider text-xs mb-3">Step 1 — Export data from Emporia</h3>
+                    <ol class="space-y-2 list-none">
+                        <li class="flex gap-2"><span class="font-bold text-blue-600 flex-shrink-0">1.</span><span>Open the Emporia Web App menu:<br><a href="https://web.emporiaenergy.com/menu" target="_blank" class="text-blue-600 underline font-medium">web.emporiaenergy.com/menu</a></span></li>
+                        <li class="flex gap-2"><span class="font-bold text-blue-600 flex-shrink-0">2.</span><span>Select <strong>"Export Raw Data to CSV"</strong> and choose the Arterra Emporia device.</span></li>
+                        <li class="flex gap-2"><span class="font-bold text-blue-600 flex-shrink-0">3.</span><span>Set the Start and End Date to match the paper billing period exactly.</span></li>
+                        <li class="flex gap-2"><span class="font-bold text-blue-600 flex-shrink-0">4.</span><span>Click <strong>"Export Data"</strong> — you will receive an email with a download link to a ZIP file.</span></li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h3 class="font-bold text-slate-800 uppercase tracking-wider text-xs mb-3">Step 2 — Upload the ZIP</h3>
+                    <p>Drop the downloaded <code class="bg-slate-100 px-1 rounded">.zip</code> file into the upload area. Do not unzip it — the app extracts the hourly CSV automatically.</p>
+                </section>
+
+                <section>
+                    <h3 class="font-bold text-slate-800 uppercase tracking-wider text-xs mb-3">Step 3 — Enter the paper bill total</h3>
+                    <p>Type the exact <strong>Total Amount Due</strong> from the PG&E / CleanPowerSF paper bill. The app uses this to scale every parking space's bill proportionally so the grand total matches the paper bill to the penny — absorbing all fixed fees, taxes, and surcharges automatically.</p>
+                </section>
+
+                <section>
+                    <h3 class="font-bold text-slate-800 uppercase tracking-wider text-xs mb-3">Step 4 — Select the tariff</h3>
+                    <p>Choose the active billing schedule:</p>
+                    <ul class="mt-2 space-y-1 list-none">
+                        <li><span class="font-semibold">Schedule B-6</span> — General Commercial TOU (current default)</li>
+                        <li><span class="font-semibold">Schedule BEV1</span> — Dedicated Business EV (if the HOA switches in future)</li>
+                    </ul>
+                </section>
+
+                <hr class="border-gray-200">
+
+                <section>
+                    <h3 class="font-bold text-slate-800 uppercase tracking-wider text-xs mb-3">Understanding the Pro-Rata Multiplier</h3>
+                    <p>The multiplier badge (e.g. <code class="bg-slate-100 px-1 rounded">x1.29144</code>) bridges the gap between the raw energy cost and the actual paper bill. It absorbs all fixed charges, customer fees, SF utility taxes, and PG&E surcharges.</p>
+                    <div class="mt-3 bg-slate-50 rounded-lg p-3 font-mono text-xs space-y-1">
+                        <div>Multiplier = Paper Bill ÷ Sum of Raw TOU Costs</div>
+                        <div>Final Bill = Raw TOU Cost × Multiplier</div>
+                    </div>
+                </section>
+
+                <section>
+                    <h3 class="font-bold text-slate-800 uppercase tracking-wider text-xs mb-3">Seasonal TOU Windows</h3>
+                    <table class="w-full text-xs border-collapse">
+                        <thead><tr class="bg-slate-100 text-slate-600">
+                            <th class="p-2 text-left">Season</th>
+                            <th class="p-2 text-left">Dates</th>
+                            <th class="p-2 text-left">Peak</th>
+                            <th class="p-2 text-left">Super Off-Peak</th>
+                        </tr></thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr><td class="p-2 font-medium">Summer</td><td class="p-2">Jun 1 – Sep 30</td><td class="p-2">4–9 PM</td><td class="p-2 text-slate-400">None</td></tr>
+                            <tr><td class="p-2 font-medium">Spring</td><td class="p-2">Mar 1 – May 31</td><td class="p-2">4–9 PM</td><td class="p-2">9 AM–2 PM</td></tr>
+                            <tr><td class="p-2 font-medium">Winter</td><td class="p-2">Oct 1 – Feb 28</td><td class="p-2">4–9 PM</td><td class="p-2 text-slate-400">None</td></tr>
+                        </tbody>
+                    </table>
+                    <p class="mt-2 text-xs text-slate-500">All other hours are Off-Peak. Season months are configurable in <code class="bg-slate-100 px-1 rounded">rates.json</code>.</p>
+                </section>
+
+                <section>
+                    <h3 class="font-bold text-slate-800 uppercase tracking-wider text-xs mb-3">Updating Tariff Rates</h3>
+                    <p>Rates typically change on <strong>July 1</strong> each year. Edit <code class="bg-slate-100 px-1 rounded">rates.json</code> in the GitHub repository — no other file needs to change. Sources:</p>
+                    <ul class="mt-2 space-y-1">
+                        <li><a href="https://www.pge.com/tariffs/assets/pdf/tariffbook/ELEC_SCHEDS_B-6.pdf" target="_blank" class="text-blue-600 underline">PG&E Schedule B-6 tariff sheet</a></li>
+                        <li><a href="https://www.cleanpowersf.org/rates" target="_blank" class="text-blue-600 underline">CleanPowerSF rates page</a></li>
+                    </ul>
+                    <p class="mt-2">Use the <strong>Advanced</strong> panel on the main page to test new rates in-session before committing them to the file.</p>
+                </section>
+
+                <section>
+                    <h3 class="font-bold text-slate-800 uppercase tracking-wider text-xs mb-3">Data Privacy</h3>
+                    <p>The Emporia ZIP file is parsed entirely in your browser. No data is uploaded to any server or stored anywhere outside this browser tab.</p>
+                </section>
+
+            </div>
+        </aside>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
 
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between">
                 <div>
-                    <div class="flex items-center gap-2 mb-3">
-                        <h2 class="text-md font-bold text-slate-700 uppercase tracking-wider">1. Upload Raw Emporia ZIP</h2>
-                        <div class="relative group">
-                            <button class="w-5 h-5 rounded-full bg-slate-200 text-slate-600 text-xs font-bold flex items-center justify-center hover:bg-blue-500 hover:text-white transition flex-shrink-0" aria-label="How to get Emporia data">?</button>
-                            <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-80 bg-slate-800 text-white text-xs rounded-lg p-4 shadow-xl hidden group-hover:block z-10 pointer-events-none">
-                                <div class="font-bold text-blue-300 mb-2">How to export from Emporia:</div>
-                                <ol class="space-y-2 list-none">
-                                    <li class="flex gap-2"><span class="text-blue-400 font-bold flex-shrink-0">1.</span><span>Open the <span class="text-blue-300 underline">Emporia Web App Menu</span> at <span class="font-mono text-green-300">web.emporiaenergy.com/menu</span></span></li>
-                                    <li class="flex gap-2"><span class="text-blue-400 font-bold flex-shrink-0">2.</span><span>Select <span class="text-yellow-300 font-semibold">"Export Raw Data to CSV"</span> and choose your Emporia device.</span></li>
-                                    <li class="flex gap-2"><span class="text-blue-400 font-bold flex-shrink-0">3.</span><span>Set the Start and End Date to match your paper billing period.</span></li>
-                                    <li class="flex gap-2"><span class="text-blue-400 font-bold flex-shrink-0">4.</span><span>Click <span class="text-yellow-300 font-semibold">"Export Data"</span> — you'll receive an email with a link to download the ZIP file.</span></li>
-                                </ol>
-                                <!-- Tooltip arrow -->
-                                <div class="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-slate-800"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-500 mb-4">Upload the raw <strong>.zip</strong> archive downloaded from your Emporia portal. The app extracts the hourly data automatically.</p>
+                    <h2 class="text-md font-bold text-slate-700 uppercase tracking-wider mb-3">1. Upload Raw Emporia ZIP</h2>
+                    <p class="text-xs text-gray-500 mb-4">Upload the raw <strong>.zip</strong> archive downloaded from your Emporia portal. The app extracts the hourly data automatically. See <button onclick="openHelp()" class="text-blue-600 underline">Help</button> for export instructions.</p>
                 </div>
                 <div class="border-2 border-dashed border-blue-300 bg-blue-50/30 rounded-lg p-4 text-center hover:bg-blue-50 transition relative">
                     <input type="file" id="zipFileInput" accept=".zip,.csv" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" onchange="handleFileSelect(event)">
@@ -133,7 +207,17 @@
     </div>
 
     <script>
+        function openHelp() {
+            document.getElementById('helpDrawer').classList.remove('translate-x-full');
+            document.getElementById('helpBackdrop').classList.remove('hidden');
+        }
+        function closeHelp() {
+            document.getElementById('helpDrawer').classList.add('translate-x-full');
+            document.getElementById('helpBackdrop').classList.add('hidden');
+        }
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHelp(); });
         let RATES = {};
+        let SEASONS = {};
         let parsedData = [];
         let circuitHeaders = [];
 
@@ -145,7 +229,7 @@
                     return r.json();
                 })
                 .then(data => {
-                    // Strip metadata keys (prefixed with _) before storing
+                    SEASONS = data.seasons;
                     ['B6', 'BEV1'].forEach(t => {
                         RATES[t] = {};
                         Object.entries(data[t]).forEach(([k, v]) => {
@@ -229,9 +313,9 @@
                 const hour = parseInt(hr, 10);
 
                 let seasonBucket;
-                if ([6,7,8,9].includes(month)) {
+                if (SEASONS.summer.includes(month)) {
                     seasonBucket = (hour >= 16 && hour < 21) ? 'summerPeak' : 'summerOffPeak';
-                } else if ([3,4,5].includes(month)) {
+                } else if (SEASONS.spring.includes(month)) {
                     if (hour >= 16 && hour < 21) seasonBucket = 'winterPeak';
                     else if (hour >= 9 && hour < 14) seasonBucket = 'springSuperOffPeak';
                     else seasonBucket = 'winterOffPeak';
