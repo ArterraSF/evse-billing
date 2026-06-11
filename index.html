@@ -409,6 +409,31 @@
         let parsedData = [];
         let circuitHeaders = [];
 
+        // Rate periods array (sorted by effectiveDate ascending). Each entry has
+        // effectiveDate (string YYYY-MM-DD) and rate objects per tariff.
+        let RATE_PERIODS = [];
+
+        // Separate delivery and generation stores for the advanced panel (shows "current" period)
+        let DELIVERY = {};
+        let GENERATION = {};
+
+        // Given a date string "YYYY-MM-DD" (from row timestamp), return the correct
+        // rate period — the latest period whose effectiveDate <= rowDate.
+        function getRatePeriodForDate(dateStr) {
+            let matched = RATE_PERIODS[0]; // fallback to earliest
+            for (let i = 0; i < RATE_PERIODS.length; i++) {
+                if (RATE_PERIODS[i].effectiveDate <= dateStr) matched = RATE_PERIODS[i];
+                else break;
+            }
+            return matched;
+        }
+
+        // Return the period applicable "today" — used for the advanced panel display
+        function getCurrentRatePeriod() {
+            const today = new Date().toISOString().slice(0, 10);
+            return getRatePeriodForDate(today);
+        }
+
         // Load rates.json then initialise the UI
         window.addEventListener('DOMContentLoaded', () => {
             // Fetch last commit date from GitHub API
@@ -428,27 +453,48 @@
                 })
                 .then(data => {
                     SEASONS = data.seasons;
-                    ['B6', 'BEV1'].forEach(t => {
-                        RATES[t] = {};
-                        DELIVERY[t] = {};
-                        GENERATION[t] = {};
-                        RATE_KEYS.forEach(k => {
-                            const d = data[t].delivery[k] || 0;
-                            const g = data[t].generation[k] || 0;
-                            DELIVERY[t][k] = d;
-                            GENERATION[t][k] = g;
-                            RATES[t][k] = d + g;
+
+                    // Build rate periods array sorted by effectiveDate
+                    RATE_PERIODS = (data.ratePeriods || [])
+                        .slice()
+                        .sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
+
+                    // Pre-compute combined rates for each period
+                    RATE_PERIODS.forEach(period => {
+                        period._rates = {};
+                        ['B6', 'BEV1'].forEach(t => {
+                            period._rates[t] = {};
+                            RATE_KEYS.forEach(k => {
+                                const d = (period[t] && period[t].delivery && period[t].delivery[k]) || 0;
+                                const g = (period[t] && period[t].generation && period[t].generation[k]) || 0;
+                                period._rates[t][k] = d + g;
+                            });
                         });
                     });
+
+                    // Populate RATES / DELIVERY / GENERATION from the currently-active period
+                    // (for the advanced panel and backward compatibility)
+                    const current = getCurrentRatePeriod();
+                    if (current) {
+                        ['B6', 'BEV1'].forEach(t => {
+                            RATES[t] = {};
+                            DELIVERY[t] = {};
+                            GENERATION[t] = {};
+                            RATE_KEYS.forEach(k => {
+                                const d = (current[t] && current[t].delivery && current[t].delivery[k]) || 0;
+                                const g = (current[t] && current[t].generation && current[t].generation[k]) || 0;
+                                DELIVERY[t][k] = d;
+                                GENERATION[t][k] = g;
+                                RATES[t][k] = d + g;
+                            });
+                        });
+                    }
+
                     syncRateUI();
                     document.getElementById('zipFileInput').disabled = false;
                 })
                 .catch(err => showError(`⚠️ Could not load rates.json: ${err.message}`));
         });
-
-        // Separate delivery and generation stores for the advanced panel
-        let DELIVERY = {};
-        let GENERATION = {};
 
         const RATE_KEYS = ['summerPeak','summerOffPeak','summerSuperOffPeak',
                            'winterPeak','winterOffPeak','winterSuperOffPeak','springSuperOffPeak'];
@@ -599,10 +645,12 @@
 
                 // Parse MM/DD/YYYY HH:MM:SS directly from the raw string
                 const [datePart, timePart] = raw.split(' ');
-                const [mo, , ] = datePart.split('/');
+                const [mo, dd, yyyy] = datePart.split('/');
                 const [hr] = (timePart || '0:0:0').split(':');
                 const month = parseInt(mo, 10);
                 const hour = parseInt(hr, 10);
+                // Build ISO date for rate period lookup (YYYY-MM-DD)
+                const isoDate = `${yyyy}-${mo.padStart(2,'0')}-${dd.padStart(2,'0')}`;
 
                 let seasonBucket;
                 if (SEASONS.summer.includes(month)) {
@@ -628,7 +676,7 @@
                     }, 0);
                     row[h] = val;
                 });
-                parsedData.push({ row, seasonBucket });
+                parsedData.push({ row, seasonBucket, isoDate });
             }
 
             if (!parsedData.length) { showError('⚠️ No valid data rows found in CSV.'); return; }
@@ -641,7 +689,6 @@
 
             const tariff = document.getElementById('tariffSelector').value;
             const paperBill = parseFloat(document.getElementById('paperBillInput').value) || 0;
-            const rates = RATES[tariff];
 
             const metrics = {};
             circuitHeaders.forEach(h => { metrics[h] = { kwh: 0, rawCost: 0, peak: 0, offPeak: 0, superOffPeak: 0 }; });
@@ -649,11 +696,15 @@
             const isPeak      = b => b === 'summerPeak'   || b === 'winterPeak';
             const isSuperOff  = b => b === 'summerSuperOffPeak' || b === 'winterSuperOffPeak' || b === 'springSuperOffPeak';
 
-            parsedData.forEach(({ row, seasonBucket }) => {
+            parsedData.forEach(({ row, seasonBucket, isoDate }) => {
+                // Look up the correct rate for this row's date
+                const period = getRatePeriodForDate(isoDate);
+                const rate = period._rates[tariff][seasonBucket];
+
                 circuitHeaders.forEach(h => {
                     const raw = row[h];
                     const kwh = (typeof raw === 'number') ? raw : ((raw === 'No CT' || raw === undefined) ? 0 : (parseFloat(raw) || 0));
-                    const cost = kwh * rates[seasonBucket];
+                    const cost = kwh * rate;
                     metrics[h].kwh += kwh;
                     metrics[h].rawCost += cost;
                     if (isPeak(seasonBucket))          metrics[h].peak += cost;
